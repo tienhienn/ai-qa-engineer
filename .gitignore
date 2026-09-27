@@ -1,0 +1,25 @@
+# 1. Bảo mật API Key (Cực kỳ quan trọng)
+.env
+.env.*
+*.env
+
+# 2. Thư viện Dependencies (cả root và client)
+node_modules/
+client/node_modules/
+
+# 3. Ảnh chụp màn hình kiểm thử tự động (Rất nặng)
+evidence/
+*.png
+*.jpg
+*.jpeg
+
+# 4. Thư mục build của Vite Frontend
+client/dist/
+dist/
+
+# 5. Log và file tạm hệ thống
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
