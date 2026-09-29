@@ -53,7 +53,6 @@ async function callGeminiWithFallback(prompt) {
         } catch (err) {
             console.warn(`[AI Warning] Model ${modelName} gặp sự cố (${err.status || err.message}). Chuyển sang model dự phòng...`);
             lastError = err;
-            // Trì hoãn nhẹ trước khi chuyển model
             await new Promise((resolve) => setTimeout(resolve, 1200));
         }
     }
@@ -62,7 +61,88 @@ async function callGeminiWithFallback(prompt) {
 }
 
 // ==========================================
-// 1. API: SINH TEST CASES TỪ REQUIREMENT (15+ CASES)
+// BONUS FEATURE: AI WEBSITE EXPLORER
+// ==========================================
+app.post('/api/explore-website', async (req, res) => {
+    const { url = 'https://automationexercise.com' } = req.body;
+    let browser = null;
+
+    try {
+        console.log(`[AI Explorer] Đang quét trang web: ${url}...`);
+        browser = await chromium.launch({ headless: true });
+        const context = await browser.newContext();
+        const page = await context.newPage();
+
+        await page.goto(url, { timeout: 25000, waitUntil: 'domcontentloaded' });
+
+        const title = await page.title();
+
+        // Trích xuất cấu trúc DOM cơ bản (Links, Buttons, Inputs, Form titles)
+        const domInfo = await page.evaluate(() => {
+            const navLinks = Array.from(document.querySelectorAll('nav a, header a, .navbar a'))
+                .map(a => a.textContent.trim())
+                .filter(t => t.length > 2 && t.length < 40)
+                .slice(0, 10);
+
+            const buttons = Array.from(document.querySelectorAll('button, .btn, input[type="submit"]'))
+                .map(b => b.textContent.trim() || b.value)
+                .filter(t => t.length > 2)
+                .slice(0, 8);
+
+            const inputs = Array.from(document.querySelectorAll('input'))
+                .map(i => i.placeholder || i.name || i.getAttribute('data-qa') || i.type)
+                .filter(Boolean)
+                .slice(0, 8);
+
+            return { navLinks, buttons, inputs };
+        });
+
+        await context.close();
+
+        // Gửi thông tin DOM cho Gemini để phân tích User Flows và đề xuất User Story
+        const prompt = `
+You are a Principal QA Automation Architect exploring a web application at URL: "${url}".
+Scraped Web App Context:
+- Page Title: "${title}"
+- Navigation Elements: ${JSON.stringify(domInfo.navLinks)}
+- Main Buttons & Actions: ${JSON.stringify(domInfo.buttons)}
+- Form Fields Found: ${JSON.stringify(domInfo.inputs)}
+
+Analyze this application structure and return ONLY a raw JSON object with:
+1. "summary": A 1-2 sentence architectural summary of what this website offers.
+2. "userFlows": An array of top 3 critical User Flows for QA testing.
+3. "suggestedRequirement": A detailed, realistic QA User Story / Requirement string for testing the User Signup / Login form on this site.
+
+Output MUST be raw JSON only without markdown or extra text.
+Schema:
+{
+  "summary": "string",
+  "userFlows": ["Flow 1 description", "Flow 2 description", "Flow 3 description"],
+  "suggestedRequirement": "string"
+}
+`;
+
+        const rawText = await callGeminiWithFallback(prompt);
+        let cleanText = rawText.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/g, '').trim();
+        const explorationData = JSON.parse(cleanText);
+
+        return res.json({ exploration: explorationData });
+
+    } catch (err) {
+        console.error("AI Website Explorer Error:", err);
+        return res.status(500).json({
+            error: "Lỗi khi quét và phân tích website",
+            details: err.message
+        });
+    } finally {
+        if (browser) {
+            await browser.close().catch(() => { });
+        }
+    }
+});
+
+// ==========================================
+// 1. API: SINH TEST STRATEGY & 15+ TEST CASES
 // ==========================================
 app.post('/api/generate-tests', async (req, res) => {
     const { requirement } = req.body;
@@ -71,31 +151,60 @@ app.post('/api/generate-tests', async (req, res) => {
     }
 
     const prompt = `
-You are an expert Senior QA Automation Engineer & ISTQB Certified Lead.
-Analyze this User Story / Feature Requirement carefully:
+You are an expert Senior QA Automation Lead & ISTQB Certified Manager.
+Analyze this User Story / Feature Requirement:
 "${requirement}"
 
-Generate AT LEAST 15 comprehensive, realistic, and highly detailed test cases.
-You MUST categorize them into 4 distinct QA groups:
-1. Positive (Successful workflows, valid standard inputs)
-2. Negative (Invalid emails, existing duplicate emails, wrong character types)
-3. Boundary (Field length limits, min/max length strings, edge characters)
-4. Validation (Empty fields, missing @ symbol, missing domain, trailing spaces)
+Task 1: Formulate a comprehensive ISTQB-compliant Test Strategy containing 4 core pillars:
+1. Scope of Testing (Included features vs Excluded out-of-scope)
+2. Test Approach / Methodologies (Equivalence Partitioning, Boundary Value Analysis, Risk-based Testing)
+3. Environment & Automation Tools (Playwright Chromium Engine, Headless/Headed Execution, Node.js API)
+4. Risk Assessment & Mitigation (Data contamination, rate limits, false positives, UI selector timeouts)
+
+Task 2: Generate AT LEAST 15 comprehensive test cases categorized into 4 groups:
+- Positive (Standard valid signup workflows)
+- Negative (Invalid email format, existing duplicate email, invalid characters)
+- Boundary (Length limits, min/max length strings)
+- Validation (Empty fields, missing @ symbol, trailing spaces)
 
 Target input fields for this signup form are "name" and "email".
-Output MUST be strictly a valid raw JSON array of objects without markdown formatting, codeblocks, or extra text.
+Output MUST be strictly a valid raw JSON object without markdown formatting.
 
-JSON Array Schema:
-[
-  {
-    "id": "TC_01",
-    "title": "Short descriptive scenario title",
-    "type": "Positive" | "Negative" | "Boundary" | "Validation",
-    "name_input": "Value to type in Name field",
-    "email_input": "Value to type in Email field",
-    "expected": "Expected result or explicit UI error message"
-  }
-]
+JSON Schema:
+{
+  "testStrategy": {
+    "title": "Automated Testing Strategy",
+    "scope": {
+      "included": ["Name & Email input validation", "Duplicate email error handling", "Form submission redirect"],
+      "excluded": ["Payment processing", "Third-party social auth", "Backend database backup"]
+    },
+    "approach": [
+      "Equivalence Partitioning for valid/invalid email formats",
+      "Boundary Value Analysis for string input lengths",
+      "Automated End-to-End Regression via Playwright"
+    ],
+    "environment": [
+      "Playwright Chromium Browser Automation Engine",
+      "Configurable Headless/Headed Execution Mode",
+      "Node.js Express backend with Gemini AI integration"
+    ],
+    "riskAssessment": [
+      { "risk": "Duplicate email state conflict in database", "mitigation": "Dynamic unique timestamp suffix generation" },
+      { "risk": "Page load & element selector timeout", "mitigation": "Wait for DOM content loaded and robust data-qa selectors" },
+      { "risk": "AI Rate-limiting (503 Service Unavailable)", "mitigation": "Automatic 3-tier Gemini model fallback cascade" }
+    ]
+  },
+  "testCases": [
+    {
+      "id": "TC_01",
+      "title": "Short descriptive scenario title",
+      "type": "Positive" | "Negative" | "Boundary" | "Validation",
+      "name_input": "Value to type in Name field",
+      "email_input": "Value to type in Email field",
+      "expected": "Expected UI result or explicit error message"
+    }
+  ]
+}
 `;
 
     try {
@@ -103,13 +212,16 @@ JSON Array Schema:
         let cleanText = rawText.trim();
         cleanText = cleanText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/g, '').trim();
 
-        const testCases = JSON.parse(cleanText);
-        return res.json({ testCases });
+        const parsedData = JSON.parse(cleanText);
+        return res.json({
+            testStrategy: parsedData.testStrategy || null,
+            testCases: parsedData.testCases || []
+        });
     } catch (error) {
         console.error("AI Generation Error:", error);
-        return res.status(500).json({ 
-            error: "Không thể sinh Test Cases từ Gemini AI", 
-            details: error.message 
+        return res.status(500).json({
+            error: "Không thể sinh Test Strategy & Test Cases từ Gemini AI",
+            details: error.message
         });
     }
 });
@@ -127,7 +239,6 @@ app.post('/api/run-tests', async (req, res) => {
     const results = [];
 
     try {
-        // Khởi động Chromium với chế độ Headless / Headed tùy chọn
         console.log(`[Playwright] Khởi chạy Chromium (Headless: ${headless})...`);
         browser = await chromium.launch({ headless: Boolean(headless) });
 
@@ -139,13 +250,11 @@ app.post('/api/run-tests', async (req, res) => {
                 context = await browser.newContext();
                 page = await context.newPage();
 
-                // Điều hướng tới trang signup/login demo
-                await page.goto('https://automationexercise.com/login', { 
-                    timeout: 25000, 
-                    waitUntil: 'domcontentloaded' 
+                await page.goto('https://automationexercise.com/login', {
+                    timeout: 25000,
+                    waitUntil: 'domcontentloaded'
                 });
 
-                // Điền dữ liệu Name & Email do người dùng kiểm chứng / chỉnh sửa
                 if (tc.name_input !== undefined && tc.name_input !== null) {
                     await page.fill('input[data-qa="signup-name"]', String(tc.name_input));
                 }
@@ -153,15 +262,12 @@ app.post('/api/run-tests', async (req, res) => {
                     await page.fill('input[data-qa="signup-email"]', String(tc.email_input));
                 }
 
-                // Bấm nút Signup
                 await page.click('button[data-qa="signup-button"]');
                 await page.waitForTimeout(2000);
 
-                // Lấy thông báo lỗi UI (nếu có)
                 const errorElement = await page.$('form[action="/signup"] p');
                 const errorText = errorElement ? (await errorElement.textContent()).trim() : '';
 
-                // Kiểm tra Logic kết quả với loại Test Case
                 const typeUpper = (tc.type || '').toUpperCase();
                 const expectedLower = (tc.expected || '').toLowerCase();
 
@@ -194,7 +300,6 @@ app.post('/api/run-tests', async (req, res) => {
                 });
 
             } catch (err) {
-                // Chụp ảnh bằng chứng lỗi khi test case FAILED
                 let screenshotUrl = null;
                 if (page) {
                     try {
@@ -219,23 +324,21 @@ app.post('/api/run-tests', async (req, res) => {
                     screenshot: screenshotUrl
                 });
             } finally {
-                // Đảm bảo luôn đóng context sau mỗi test case
                 if (context) {
-                    await context.close().catch(() => {});
+                    await context.close().catch(() => { });
                 }
             }
         }
     } catch (globalErr) {
         console.error("Playwright Runtime Error:", globalErr);
-        return res.status(500).json({ 
-            error: "Lỗi thực thi Playwright Test", 
-            details: globalErr.message 
+        return res.status(500).json({
+            error: "Lỗi thực thi Playwright Test",
+            details: globalErr.message
         });
     } finally {
-        // Gợi ý bắt buộc: Đảm bảo browser luôn được đóng trong khối finally để chống leak tiến trình Chromium
         if (browser) {
             console.log("[Playwright] Đóng trình duyệt Chromium sạch sẽ.");
-            await browser.close().catch(() => {});
+            await browser.close().catch(() => { });
         }
     }
 
@@ -287,22 +390,50 @@ Generate a clear, highly professional Bug Report in Markdown format containing:
 // ==========================================
 app.post('/api/export-excel', (req, res) => {
     try {
-        const { type, testCases, testResults, bugReports } = req.body;
+        const { testStrategy, testCases, testResults, bugReports } = req.body;
         const wb = XLSX.utils.book_new();
 
-        if (type === 'testcases' && Array.isArray(testCases)) {
-            const data = testCases.map(tc => ({
-                'ID': tc.id,
-                'Phân loại (Type)': tc.type,
-                'Tiêu đề Kịch bản (Scenario Title)': tc.title,
-                'Name Input': tc.name_input || '',
-                'Email Input': tc.email_input || '',
-                'Kết quả mong đợi (Expected Result)': tc.expected
-            }));
-            const ws = XLSX.utils.json_to_sheet(data);
-            ws['!cols'] = [{ wch: 10 }, { wch: 15 }, { wch: 40 }, { wch: 20 }, { wch: 25 }, { wch: 45 }];
-            XLSX.utils.book_append_sheet(wb, ws, "Test Cases");
-        } else if (type === 'results' && Array.isArray(testResults)) {
+        // Sheet 1: Test Strategy & Cases
+        const sheet1Data = [];
+
+        if (testStrategy) {
+            sheet1Data.push({ 'Col1': '=== TEST STRATEGY OVERVIEW ===', 'Col2': '', 'Col3': '', 'Col4': '', 'Col5': '', 'Col6': '' });
+            sheet1Data.push({ 'Col1': 'Strategy Title', 'Col2': testStrategy.title || 'ISTQB Test Strategy', 'Col3': '', 'Col4': '', 'Col5': '', 'Col6': '' });
+            if (testStrategy.scope) {
+                sheet1Data.push({ 'Col1': 'Scope Included', 'Col2': (testStrategy.scope.included || []).join('; '), 'Col3': '', 'Col4': '', 'Col5': '', 'Col6': '' });
+                sheet1Data.push({ 'Col1': 'Scope Excluded', 'Col2': (testStrategy.scope.excluded || []).join('; '), 'Col3': '', 'Col4': '', 'Col5': '', 'Col6': '' });
+            }
+            sheet1Data.push({ 'Col1': '', 'Col2': '', 'Col3': '', 'Col4': '', 'Col5': '', 'Col6': '' });
+        }
+
+        sheet1Data.push({
+            'Col1': 'ID',
+            'Col2': 'Phân loại (Type)',
+            'Col3': 'Tiêu đề Kịch bản (Scenario Title)',
+            'Col4': 'Name Input',
+            'Col5': 'Email Input',
+            'Col6': 'Kết quả mong đợi (Expected Result)'
+        });
+
+        if (Array.isArray(testCases)) {
+            testCases.forEach(tc => {
+                sheet1Data.push({
+                    'Col1': tc.id,
+                    'Col2': tc.type,
+                    'Col3': tc.title,
+                    'Col4': tc.name_input || '',
+                    'Col5': tc.email_input || '',
+                    'Col6': tc.expected
+                });
+            });
+        }
+
+        const ws1 = XLSX.utils.json_to_sheet(sheet1Data, { skipHeader: true });
+        ws1['!cols'] = [{ wch: 15 }, { wch: 18 }, { wch: 42 }, { wch: 20 }, { wch: 25 }, { wch: 45 }];
+        XLSX.utils.book_append_sheet(wb, ws1, "Test Strategy & Cases");
+
+        // Sheet 2: Execution & Bug Reports
+        if (Array.isArray(testResults) && testResults.length > 0) {
             const summaryData = testResults.map(r => ({
                 'ID': r.id,
                 'Phân loại': r.type || '',
@@ -312,28 +443,14 @@ app.post('/api/export-excel', (req, res) => {
                 'Chi tiết lỗi (Error Log)': r.error || 'None',
                 'Screenshot Link': r.screenshot || 'N/A'
             }));
-            const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-            wsSummary['!cols'] = [{ wch: 10 }, { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 40 }, { wch: 45 }, { wch: 50 }];
-            XLSX.utils.book_append_sheet(wb, wsSummary, "Execution Summary");
-
-            if (Array.isArray(bugReports) && bugReports.length > 0) {
-                const bugData = bugReports.map(b => ({
-                    'Test ID': b.testId,
-                    'Tiêu đề Bug': b.title,
-                    'Chi tiết Bug Report (Jira Format)': b.report,
-                    'Screenshot URL': b.screenshot || 'N/A'
-                }));
-                const wsBugs = XLSX.utils.json_to_sheet(bugData);
-                wsBugs['!cols'] = [{ wch: 12 }, { wch: 35 }, { wch: 80 }, { wch: 50 }];
-                XLSX.utils.book_append_sheet(wb, wsBugs, "AI Bug Reports");
-            }
-        } else {
-            return res.status(400).json({ error: "Payload không hợp lệ để xuất Excel" });
+            const ws2 = XLSX.utils.json_to_sheet(summaryData);
+            ws2['!cols'] = [{ wch: 10 }, { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 40 }, { wch: 45 }, { wch: 50 }];
+            XLSX.utils.book_append_sheet(wb, ws2, "Execution & Bug Reports");
         }
 
         const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=QA_Report_${Date.now()}.xlsx`);
+        res.setHeader('Content-Disposition', `attachment; filename=QA_FullReport_${Date.now()}.xlsx`);
         return res.send(buffer);
     } catch (err) {
         console.error("Export Excel Error:", err);

@@ -16,24 +16,35 @@ import {
   Edit3,
   Bug,
   Info,
-  Check,
-  Zap
+  Zap,
+  Globe,
+  Compass,
+  ShieldCheck,
+  Layers,
+  Cpu,
+  AlertOctagon,
+  ArrowRight
 } from "lucide-react";
 
 export default function App() {
+  // State Explorer Website (Bonus Feature)
+  const [targetUrl, setTargetUrl] = useState("https://automationexercise.com");
+  const [loadingExplore, setLoadingExplore] = useState(false);
+  const [exploration, setExploration] = useState(null);
+
+  // State Requirement & Generation
   const [requirement, setRequirement] = useState(
     "As a new user, I want to sign up on https://automationexercise.com/login by entering my Name and Email address. If the email is already registered, display the error message 'Email Address already exist!'."
   );
-  const [activeTab, setActiveTab] = useState("ALL");
   const [loadingGenerate, setLoadingGenerate] = useState(false);
-  const [loadingRun, setLoadingRun] = useState(false);
-  
-  // State quản lý danh sách Test Cases & Lựa chọn
+  const [testStrategy, setTestStrategy] = useState(null);
   const [testCases, setTestCases] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  
-  // State cấu hình Playwright & Kết quả
+  const [activeTab, setActiveTab] = useState("ALL");
+
+  // State Automation Execution & Bug Report
   const [headless, setHeadless] = useState(true);
+  const [loadingRun, setLoadingRun] = useState(false);
   const [testResults, setTestResults] = useState([]);
   const [bugReports, setBugReports] = useState([]);
 
@@ -44,10 +55,51 @@ export default function App() {
     setToast({ show: true, message, type });
     setTimeout(() => {
       setToast({ show: false, message: "", type: "info" });
-    }, 3500);
+    }, 3800);
   };
 
-  // 1. GỌI API SINH TEST CASES TỪ GEMINI AI (15+ CASES)
+  // 0. BONUS FEATURE: AI WEBSITE EXPLORER
+  const handleExploreWebsite = async () => {
+    if (!targetUrl.trim()) {
+      showToast("Vui lòng nhập URL trang web!", "warning");
+      return;
+    }
+    setLoadingExplore(true);
+    try {
+      showToast("🔍 Playwright đang mở trang web & AI trích xuất cấu trúc...", "info");
+      const response = await fetch("http://localhost:5000/api/explore-website", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: targetUrl }),
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        throw new Error(`Server trả về HTTP ${response.status} (${response.statusText}). Vui lòng đảm bảo server.js bản mới nhất đang chạy!`);
+      }
+
+      if (!response.ok) throw new Error(data.error || "Lỗi explore website");
+
+      setExploration(data.exploration);
+      showToast("🌐 AI đã phân tích xong cấu trúc Website & các User Flows!", "success");
+    } catch (err) {
+      showToast(`Lỗi Explore: ${err.message}`, "error");
+      console.error(err);
+    } finally {
+      setLoadingExplore(false);
+    }
+  };
+
+  const applySuggestedRequirement = (suggested) => {
+    if (suggested) {
+      setRequirement(suggested);
+      showToast("⚡ Đã áp dụng User Story gợi ý vào ô Requirement!", "success");
+    }
+  };
+
+  // 1. MANDATORY FEATURE: GỌI API SINH TEST STRATEGY & 15+ TEST CASES
   const handleGenerateTests = async () => {
     if (!requirement.trim()) {
       showToast("Vui lòng nhập Requirement trước khi sinh test cases!", "warning");
@@ -57,21 +109,29 @@ export default function App() {
     setTestResults([]);
     setBugReports([]);
     try {
+      showToast("🤖 AI đang lập Test Strategy & sinh 15+ Test Cases...", "info");
       const response = await fetch("http://localhost:5000/api/generate-tests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ requirement }),
       });
-      const data = await response.json();
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        throw new Error(`Server trả về HTTP ${response.status} (${response.statusText}). Vui lòng khởi động lại server.js!`);
+      }
+
       if (!response.ok) throw new Error(data.error || "Lỗi sinh Test Cases");
 
-      const generated = data.testCases || [];
-      setTestCases(generated);
-      // Mặc định chọn tất cả các test cases mới sinh ra
-      setSelectedIds(new Set(generated.map((tc) => tc.id)));
-      showToast(`✨ Đã sinh thành công ${generated.length} Test Cases từ AI!`, "success");
+      const generatedCases = data.testCases || [];
+      setTestStrategy(data.testStrategy || null);
+      setTestCases(generatedCases);
+      setSelectedIds(new Set(generatedCases.map((tc) => tc.id)));
+      showToast(`✨ Đã sinh thành công Test Strategy & ${generatedCases.length} Test Cases!`, "success");
     } catch (err) {
-      showToast(`Lỗi: ${err.message}. Hãy chắc chắn server.js đang chạy ở port 5000.`, "error");
+      showToast(`Lỗi: ${err.message}`, "error");
       console.error(err);
     } finally {
       setLoadingGenerate(false);
@@ -91,12 +151,10 @@ export default function App() {
 
   const toggleSelectAll = () => {
     if (selectedIds.size === filteredCases.length && filteredCases.length > 0) {
-      // Bỏ chọn toàn bộ trong tab hiện tại
       const next = new Set(selectedIds);
       filteredCases.forEach((tc) => next.delete(tc.id));
       setSelectedIds(next);
     } else {
-      // Chọn tất cả trong tab hiện tại
       const next = new Set(selectedIds);
       filteredCases.forEach((tc) => next.add(tc.id));
       setSelectedIds(next);
@@ -110,7 +168,7 @@ export default function App() {
     );
   };
 
-  // 2. CHẠY AUTOMATED TESTS VOI PLAYWRIGHT (CHỈ CHẠY CÁC CASE ĐƯỢC CHỌN)
+  // 2. CHẠY AUTOMATED TESTS VỚI PLAYWRIGHT
   const handleRunTests = async (runMode = "selected") => {
     let casesToRun = [];
     if (runMode === "all") {
@@ -128,7 +186,7 @@ export default function App() {
     setTestResults([]);
     setBugReports([]);
 
-    showToast(`🚀 Đang khởi tạo Playwright (${headless ? "Headless" : "Headed"})...`, "info");
+    showToast(`🚀 Đang khởi tạo Playwright (${headless ? "Headless Mode" : "Headed UI Mode"})...`, "info");
 
     try {
       const response = await fetch("http://localhost:5000/api/run-tests", {
@@ -147,7 +205,7 @@ export default function App() {
 
       showToast(`Hoàn tất! Pass: ${passedCount}/${results.length}, Fail: ${failedCases.length}`, failedCases.length > 0 ? "warning" : "success");
 
-      // Tự động phân tích lỗi & viết Bug Report cho các case FAILED
+      // Tự động phân tích lỗi & lập Bug Report cho các case FAILED
       if (failedCases.length > 0) {
         showToast("🤖 AI đang phân tích nguyên nhân gốc & lập Bug Report...", "info");
         const generatedReports = [];
@@ -182,88 +240,73 @@ export default function App() {
     }
   };
 
-  // 3. TÍNH NĂNG XUẤT EXCEL CHUẨN QA (1-CLICK EXPORT)
-  const exportTestCasesToExcel = () => {
+  // 3. TÍNH NĂNG XUẤT EXCEL 2-SHEET CHUẨN QA (1-CLICK EXPORT)
+  const exportFullReportToExcel = () => {
     if (testCases.length === 0) {
-      showToast("Chưa có danh sách Test Cases để xuất Excel!", "warning");
-      return;
-    }
-
-    const dataToExport = testCases.map((tc) => ({
-      "Test ID": tc.id,
-      "Phân loại (Category)": tc.type,
-      "Kịch bản kiểm thử (Scenario Title)": tc.title,
-      "Name Input": tc.name_input || "",
-      "Email Input": tc.email_input || "",
-      "Kết quả mong đợi (Expected Result)": tc.expected,
-      "Trạng thái chọn": selectedIds.has(tc.id) ? "Selected" : "Unselected",
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    worksheet["!cols"] = [
-      { wch: 10 },
-      { wch: 14 },
-      { wch: 42 },
-      { wch: 20 },
-      { wch: 25 },
-      { wch: 45 },
-      { wch: 15 },
-    ];
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Test Cases");
-
-    XLSX.writeFile(workbook, `QA_TestCases_${Date.now()}.xlsx`);
-    showToast("📊 Xuất file Excel Test Cases thành công!", "success");
-  };
-
-  const exportExecutionReportToExcel = () => {
-    if (testResults.length === 0) {
-      showToast("Chưa có kết quả kiểm thử để xuất Báo cáo!", "warning");
+      showToast("Chưa có dữ liệu để xuất file Excel!", "warning");
       return;
     }
 
     const workbook = XLSX.utils.book_new();
 
-    // Sheet 1: Execution Summary
-    const summaryData = testResults.map((r) => ({
-      "Test ID": r.id,
-      "Phân loại": r.type || "",
-      "Tiêu đề Kịch bản": r.title,
-      "Trạng thái (Status)": r.status,
-      "Kết quả mong đợi": r.expected,
-      "Chi tiết lỗi (Error Log)": r.error || "N/A",
-      "Đường dẫn Screenshot": r.screenshot || "N/A",
-    }));
-    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-    wsSummary["!cols"] = [
-      { wch: 10 },
-      { wch: 14 },
-      { wch: 38 },
-      { wch: 15 },
-      { wch: 40 },
-      { wch: 45 },
-      { wch: 50 },
-    ];
-    XLSX.utils.book_append_sheet(workbook, wsSummary, "Execution Summary");
+    // Sheet 1: Test Strategy & Cases
+    const sheet1Data = [];
 
-    // Sheet 2: AI Bug Reports (nếu có lỗi)
-    if (bugReports.length > 0) {
-      const bugData = bugReports.map((b) => ({
-        "Test ID": b.testId,
-        "Tiêu đề Bug Defect": b.title,
-        "Bug Report Details (Jira)": b.report,
-        "Screenshot URL": b.screenshot || "N/A",
+    if (testStrategy) {
+      sheet1Data.push({ A: "=== ISTQB TEST STRATEGY OVERVIEW ===", B: "", C: "", D: "", E: "", F: "" });
+      sheet1Data.push({ A: "Strategy Title", B: testStrategy.title || "Automated Test Strategy", C: "", D: "", E: "", F: "" });
+      if (testStrategy.scope) {
+        sheet1Data.push({ A: "Scope Included", B: (testStrategy.scope.included || []).join("; "), C: "", D: "", E: "", F: "" });
+        sheet1Data.push({ A: "Scope Excluded", B: (testStrategy.scope.excluded || []).join("; "), C: "", D: "", E: "", F: "" });
+      }
+      sheet1Data.push({ A: "", B: "", C: "", D: "", E: "", F: "" });
+    }
+
+    sheet1Data.push({
+      A: "ID",
+      B: "Phân loại (Category)",
+      C: "Kịch bản (Scenario Title)",
+      D: "Name Input",
+      E: "Email Input",
+      F: "Kết quả mong đợi (Expected Result)"
+    });
+
+    testCases.forEach((tc) => {
+      sheet1Data.push({
+        A: tc.id,
+        B: tc.type,
+        C: tc.title,
+        D: tc.name_input || "",
+        E: tc.email_input || "",
+        F: tc.expected
+      });
+    });
+
+    const ws1 = XLSX.utils.json_to_sheet(sheet1Data, { skipHeader: true });
+    ws1["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 42 }, { wch: 20 }, { wch: 25 }, { wch: 45 }];
+    XLSX.utils.book_append_sheet(workbook, ws1, "Test Strategy & Cases");
+
+    // Sheet 2: Execution & Bug Reports
+    if (testResults.length > 0) {
+      const summaryData = testResults.map((r) => ({
+        "Test ID": r.id,
+        "Phân loại": r.type || "",
+        "Tiêu đề Kịch bản": r.title,
+        "Trạng thái (Status)": r.status,
+        "Kết quả mong đợi": r.expected,
+        "Chi tiết lỗi (Error Log)": r.error || "None",
+        "Screenshot URL": r.screenshot || "N/A"
       }));
-      const wsBugs = XLSX.utils.json_to_sheet(bugData);
-      wsBugs["!cols"] = [{ wch: 12 }, { wch: 35 }, { wch: 80 }, { wch: 50 }];
-      XLSX.utils.book_append_sheet(workbook, wsBugs, "AI Bug Reports");
+      const ws2 = XLSX.utils.json_to_sheet(summaryData);
+      ws2["!cols"] = [{ wch: 10 }, { wch: 14 }, { wch: 38 }, { wch: 15 }, { wch: 40 }, { wch: 45 }, { wch: 50 }];
+      XLSX.utils.book_append_sheet(workbook, ws2, "Execution & Bug Reports");
     }
 
-    XLSX.writeFile(workbook, `QA_TestExecution_Report_${Date.now()}.xlsx`);
-    showToast("📈 Xuất Báo cáo Kết quả Kiểm thử Excel thành công!", "success");
+    XLSX.writeFile(workbook, `QA_FullReport_${Date.now()}.xlsx`);
+    showToast("📊 Xuất Báo cáo Excel 2-Sheet thành công!", "success");
   };
 
-  // Lọc test cases theo tab phân loại
+  // Lọc test cases theo tab
   const filteredCases =
     activeTab === "ALL"
       ? testCases
@@ -286,44 +329,134 @@ export default function App() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header Banner */}
       <header style={styles.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={styles.logoBadge}>
-            <Zap size={22} color="#38bdf8" />
+            <Zap size={24} color="#38bdf8" />
           </div>
           <div>
             <h1 style={styles.headerTitle}>AI QA Engineer Assistant</h1>
             <p style={styles.headerSubtitle}>
-              Autonomous Test Generation • Playwright Execution • Human-in-the-Loop Verification • Excel Reporting
+              AI Explorer • ISTQB Test Strategy • Playwright Automation • Human-in-the-Loop Verification • Excel Reporting
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span style={styles.badge}>ISTQB Standards Compliant</span>
-          <span style={styles.badgeGlow}>7-Day AI Challenge</span>
+          <span style={styles.badge}>ISTQB Compliant</span>
+          <span style={styles.badgeGlow}>🏆 200 XP Challenge Ready</span>
         </div>
       </header>
 
-      {/* Grid Content Main */}
+      {/* CARD 0: AI WEBSITE EXPLORER (BONUS FEATURE) */}
+      <section style={{ marginBottom: 24 }}>
+        <div style={{ ...styles.card, borderColor: "rgba(56, 189, 248, 0.4)" }}>
+          <div style={styles.cardHeaderBetween}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ ...styles.stepNum, backgroundColor: "#0284c7" }}>0</span>
+              <h2 style={styles.cardTitle}>AI Website Explorer (Bonus Feature)</h2>
+            </div>
+            <span style={{ fontSize: 12, color: "#38bdf8", fontWeight: "600" }}>Playwright Web Scraper & Gemini AI Flow Analysis</span>
+          </div>
+
+          <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+            <div style={styles.inputUrlWrapper}>
+              <Globe size={18} color="#94a3b8" />
+              <input
+                type="text"
+                style={styles.urlInput}
+                value={targetUrl}
+                onChange={(e) => setTargetUrl(e.target.value)}
+                placeholder="Nhập URL website (vd: https://automationexercise.com)"
+              />
+            </div>
+            <button
+              style={{
+                ...styles.button,
+                width: "220px",
+                backgroundColor: loadingExplore ? "#4b5563" : "#0284c7",
+              }}
+              onClick={handleExploreWebsite}
+              disabled={loadingExplore}
+            >
+              {loadingExplore ? (
+                <>
+                  <RefreshCw className="spin" size={16} />
+                  <span>AI đang khám phá...</span>
+                </>
+              ) : (
+                <>
+                  <Compass size={16} />
+                  <span>🔍 AI Explore Website</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Result of Website Exploration */}
+          {exploration && (
+            <div style={styles.explorerResultBox}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={styles.exploreBadge}>WEBSITE ARCHITECTURE</span>
+                <p style={{ margin: "6px 0 0 0", fontSize: 13, color: "#cbd5e1" }}>
+                  {exploration.summary}
+                </p>
+              </div>
+
+              {/* 3 Top User Flows */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={styles.sectionLabel}>📌 Top 3 Key User Flows Identified:</label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 6 }}>
+                  {(exploration.userFlows || []).map((flow, idx) => (
+                    <div key={idx} style={styles.flowCard}>
+                      <span style={styles.flowNum}>Flow #{idx + 1}</span>
+                      <span style={{ fontSize: 12, color: "#e2e8f0" }}>{flow}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Suggested User Story */}
+              {exploration.suggestedRequirement && (
+                <div style={styles.suggestedBox}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <label style={styles.sectionLabel}>💡 AI Suggested User Story:</label>
+                    <button
+                      style={styles.applyBtn}
+                      onClick={() => applySuggestedRequirement(exploration.suggestedRequirement)}
+                    >
+                      <ArrowRight size={14} />
+                      <span>⚡ Áp dụng vào ô Requirement</span>
+                    </button>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#93c5fd", fontStyle: "italic" }}>
+                    "{exploration.suggestedRequirement}"
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Main Grid Content */}
       <main style={styles.mainGrid}>
-        {/* CỘT BÊN TRÁI: INPUT REQUIREMENT & TEST CASES TABLE */}
+        {/* CỘT BÊN TRÁI: REQUIREMENT, STRATEGY & TEST SUITE */}
         <section style={styles.column}>
-          {/* Card 1: Requirement Input */}
+          {/* CARD 1: REQUIREMENT INPUT */}
           <div style={styles.card}>
             <div style={styles.cardHeaderBetween}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={styles.stepNum}>1</span>
-                <h2 style={styles.cardTitle}>Requirement / User Story Input</h2>
+                <h2 style={styles.cardTitle}>Requirement / User Story</h2>
               </div>
-              <span style={{ fontSize: 12, color: "#94a3b8" }}>Target Form: AutomationExercise Signup</span>
             </div>
             <textarea
               style={styles.textarea}
               rows={4}
               value={requirement}
               onChange={(e) => setRequirement(e.target.value)}
-              placeholder="Nhập yêu cầu bài test hoặc User Story tại đây..."
+              placeholder="Paste user story or feature requirements here..."
             />
             <button
               style={{
@@ -336,18 +469,102 @@ export default function App() {
               {loadingGenerate ? (
                 <>
                   <RefreshCw className="spin" size={18} />
-                  <span>AI đang phân tích & sinh 15+ Test Cases (Model Fallback)...</span>
+                  <span>AI đang sinh Test Strategy & 15+ Test Cases (Fallback)...</span>
                 </>
               ) : (
                 <>
                   <Sparkles size={18} />
-                  <span>Generate 15+ Categorized Test Cases</span>
+                  <span>Generate Test Strategy & 15+ Test Cases</span>
                 </>
               )}
             </button>
           </div>
 
-          {/* Card 2: Test Suites Table & Human Verification */}
+          {/* CARD 2: TEST STRATEGY VIEW (MANDATORY FEATURE) */}
+          {testStrategy && (
+            <div style={{ ...styles.card, borderLeft: "4px solid #38bdf8" }}>
+              <div style={styles.cardHeaderBetween}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <ShieldCheck size={20} color="#38bdf8" />
+                  <h2 style={{ ...styles.cardTitle, color: "#38bdf8" }}>
+                    {testStrategy.title || "ISTQB Test Strategy Overview"}
+                  </h2>
+                </div>
+                <span style={styles.badgeGlow}>QA Strategy Framework</span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                {/* 1. Scope of Testing */}
+                <div style={styles.strategyBlock}>
+                  <div style={styles.strategyHeader}>
+                    <Layers size={15} color="#60a5fa" />
+                    <span>1. Scope of Testing</span>
+                  </div>
+                  <div style={{ fontSize: 12 }}>
+                    <div style={{ color: "#34d399", fontWeight: "600", marginBottom: 2 }}>Included:</div>
+                    <ul style={styles.strategyList}>
+                      {(testStrategy.scope?.included || []).map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                    <div style={{ color: "#f87171", fontWeight: "600", margin: "6px 0 2px 0" }}>Excluded:</div>
+                    <ul style={styles.strategyList}>
+                      {(testStrategy.scope?.excluded || []).map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* 2. Test Approach */}
+                <div style={styles.strategyBlock}>
+                  <div style={styles.strategyHeader}>
+                    <Compass size={15} color="#a78bfa" />
+                    <span>2. Test Approach & Methodologies</span>
+                  </div>
+                  <ul style={styles.strategyList}>
+                    {(testStrategy.approach || []).map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* 3. Environment & Tools */}
+                <div style={styles.strategyBlock}>
+                  <div style={styles.strategyHeader}>
+                    <Cpu size={15} color="#f59e0b" />
+                    <span>3. Environment & Automation Tools</span>
+                  </div>
+                  <ul style={styles.strategyList}>
+                    {(testStrategy.environment || []).map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* 4. Risk Assessment & Mitigation */}
+                <div style={styles.strategyBlock}>
+                  <div style={styles.strategyHeader}>
+                    <AlertOctagon size={15} color="#ef4444" />
+                    <span>4. Risk Assessment & Mitigation</span>
+                  </div>
+                  <div style={{ fontSize: 11 }}>
+                    {(testStrategy.riskAssessment || []).map((r, i) => (
+                      <div key={i} style={{ marginBottom: 6 }}>
+                        <span style={{ color: "#fca5a5", fontWeight: "600" }}>Risk: </span>
+                        <span>{r.risk}</span>
+                        <br />
+                        <span style={{ color: "#6ee7b7", fontWeight: "600" }}>Mitigation: </span>
+                        <span>{r.mitigation}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CARD 3: TEST CASES TABLE & HUMAN VERIFICATION */}
           {testCases.length > 0 && (
             <div style={styles.card}>
               <div style={styles.cardHeaderBetween}>
@@ -361,7 +578,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Phân loại Tabs */}
+                {/* Tab Filtering */}
                 <div style={styles.tabContainer}>
                   {["ALL", "POSITIVE", "NEGATIVE", "BOUNDARY", "VALIDATION"].map((tab) => (
                     <button
@@ -378,7 +595,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Toolbar điều khiển (Export Excel, Mode Headless/Headed, Select All) */}
+              {/* Toolbar controls (Excel export, Headless toggle, Select all) */}
               <div style={styles.toolbar}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <button style={styles.iconActionBtn} onClick={toggleSelectAll}>
@@ -400,7 +617,7 @@ export default function App() {
                       borderColor: headless ? "#334155" : "#60a5fa",
                     }}
                     onClick={() => setHeadless(!headless)}
-                    title="Chuyển đổi chế độ bật/tắt cửa sổ trình duyệt khi chạy test"
+                    title="Chuyển đổi chế độ xem trực tiếp trình duyệt Chromium"
                   >
                     {headless ? <EyeOff size={15} /> : <Eye size={15} />}
                     <span>{headless ? "Headless Mode (Ngầm)" : "Headed Mode (Bật UI Browser)"}</span>
@@ -408,13 +625,13 @@ export default function App() {
                 </div>
 
                 {/* Export Excel Button */}
-                <button style={styles.excelExportBtn} onClick={exportTestCasesToExcel}>
+                <button style={styles.excelExportBtn} onClick={exportFullReportToExcel}>
                   <FileSpreadsheet size={16} />
-                  <span>Xuất Excel Test Cases (.xlsx)</span>
+                  <span>Xuất Excel (.xlsx)</span>
                 </button>
               </div>
 
-              {/* Bảng Test Cases với Inline Editing */}
+              {/* Editable Test Cases Table */}
               <div style={styles.tableWrapper}>
                 <table style={styles.table}>
                   <thead>
@@ -509,7 +726,7 @@ export default function App() {
                 </table>
               </div>
 
-              {/* Action Buttons: Run Selected Cases & Run All */}
+              {/* Run Actions */}
               <div style={styles.runActionGrid}>
                 <button
                   style={{
@@ -546,7 +763,7 @@ export default function App() {
 
         {/* CỘT BÊN PHẢI: AUTOMATION RESULTS & AI BUG REPORT */}
         <section style={styles.column}>
-          {/* Card 3: Playwright Automation Results */}
+          {/* CARD 4: PLAYWRIGHT EXECUTION RESULTS */}
           <div style={styles.card}>
             <div style={styles.cardHeaderBetween}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -554,9 +771,9 @@ export default function App() {
                 <h2 style={styles.cardTitle}>Playwright Execution Results</h2>
               </div>
               {testResults.length > 0 && (
-                <button style={styles.excelExportBtnSmall} onClick={exportExecutionReportToExcel}>
+                <button style={styles.excelExportBtnSmall} onClick={exportFullReportToExcel}>
                   <Download size={14} />
-                  <span>Xuất Excel Summary (.xlsx)</span>
+                  <span>Xuất Excel Summary</span>
                 </button>
               )}
             </div>
@@ -565,7 +782,7 @@ export default function App() {
               <div style={styles.emptyContainer}>
                 <Info size={32} color="#475569" />
                 <p style={styles.emptyText}>
-                  Chưa có kết quả chạy tự động. Chọn các Test Cases và bấm nút "Run Selected Test Cases".
+                  Chưa có kết quả chạy tự động. Tích chọn các Test Cases và bấm nút "Run Selected Test Cases".
                 </p>
               </div>
             ) : (
@@ -617,7 +834,7 @@ export default function App() {
             )}
           </div>
 
-          {/* Card 4: AI Bug Report & Visual Screenshot Evidence */}
+          {/* CARD 5: AI BUG REPORT & VISUAL SCREENSHOT EVIDENCE */}
           {bugReports.length > 0 && (
             <div style={styles.card}>
               <div style={styles.cardHeader}>
@@ -667,7 +884,7 @@ export default function App() {
   );
 }
 
-// Hàm format màu badge theo loại Test Case
+// Helpers
 function getTagStyle(type = "") {
   const base = {
     padding: "3px 8px",
@@ -703,7 +920,7 @@ function getToastStyle(type) {
   }
 }
 
-// Bảng Styles CSS Dark Theme Hiện Đại
+// Styles CSS Dark Theme
 const styles = {
   container: {
     minHeight: "100vh",
@@ -780,7 +997,7 @@ const styles = {
   },
   mainGrid: {
     display: "grid",
-    gridTemplateColumns: "1.25fr 1fr",
+    gridTemplateColumns: "1.3fr 1fr",
     gap: 24,
     alignItems: "start",
   },
@@ -796,16 +1013,16 @@ const styles = {
     padding: 20,
     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
   },
-  cardHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
-  },
   cardHeaderBetween: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 16,
+  },
+  cardHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
     marginBottom: 16,
   },
   stepNum: {
@@ -824,6 +1041,102 @@ const styles = {
     fontSize: 16,
     fontWeight: "600",
     margin: 0,
+  },
+  inputUrlWrapper: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#0f172a",
+    border: "1px solid #334155",
+    borderRadius: 8,
+    padding: "0 12px",
+  },
+  urlInput: {
+    width: "100%",
+    backgroundColor: "transparent",
+    border: "none",
+    color: "#38bdf8",
+    padding: "10px 0",
+    fontSize: 13,
+    outline: "none",
+    fontFamily: "monospace",
+  },
+  explorerResultBox: {
+    backgroundColor: "#0f172a",
+    borderRadius: 8,
+    padding: 14,
+    border: "1px solid #334155",
+  },
+  exploreBadge: {
+    backgroundColor: "rgba(2, 132, 199, 0.2)",
+    color: "#38bdf8",
+    padding: "2px 8px",
+    borderRadius: 4,
+    fontSize: 10,
+    fontWeight: "700",
+    border: "1px solid rgba(2, 132, 199, 0.4)",
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#94a3b8",
+  },
+  flowCard: {
+    backgroundColor: "#1e293b",
+    border: "1px solid #334155",
+    borderRadius: 6,
+    padding: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  flowNum: {
+    fontSize: 10,
+    color: "#38bdf8",
+    fontWeight: "700",
+  },
+  suggestedBox: {
+    backgroundColor: "rgba(30, 58, 138, 0.25)",
+    border: "1px solid rgba(59, 130, 246, 0.3)",
+    borderRadius: 6,
+    padding: 12,
+    marginTop: 10,
+  },
+  applyBtn: {
+    backgroundColor: "#2563eb",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: 4,
+    padding: "4px 10px",
+    fontSize: 11,
+    fontWeight: "600",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  strategyBlock: {
+    backgroundColor: "#0f172a",
+    borderRadius: 8,
+    padding: 12,
+    border: "1px solid #334155",
+  },
+  strategyHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    fontWeight: "600",
+    fontSize: 13,
+    marginBottom: 8,
+    color: "#f8fafc",
+  },
+  strategyList: {
+    margin: 0,
+    paddingLeft: 16,
+    color: "#cbd5e1",
+    fontSize: 11,
+    lineHeight: "1.6",
   },
   subTextCount: {
     fontSize: 12,
