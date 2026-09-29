@@ -25,6 +25,7 @@ import {
   AlertOctagon,
   ArrowRight
 } from "lucide-react";
+import "./App.css";
 
 export default function App() {
   // State Explorer Website (Bonus Feature)
@@ -194,7 +195,14 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ testCases: casesToRun, headless }),
       });
-      const data = await response.json();
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        throw new Error(`Server trả về HTTP ${response.status} (${response.statusText}). Vui lòng đảm bảo server.js đang chạy!`);
+      }
+
       if (!response.ok) throw new Error(data.error || "Lỗi chạy Playwright");
 
       const results = data.results || [];
@@ -317,10 +325,10 @@ export default function App() {
     filteredCases.every((tc) => selectedIds.has(tc.id));
 
   return (
-    <div style={styles.container}>
+    <div className="app-container">
       {/* Toast Notification Alert */}
       {toast.show && (
-        <div style={{ ...styles.toast, ...getToastStyle(toast.type) }}>
+        <div className={getToastClass(toast.type)}>
           {toast.type === "success" && <CheckCircle2 size={18} />}
           {toast.type === "error" && <XCircle size={18} />}
           {toast.type === "warning" && <AlertTriangle size={18} />}
@@ -330,52 +338,48 @@ export default function App() {
       )}
 
       {/* Header Banner */}
-      <header style={styles.header}>
+      <header className="header">
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={styles.logoBadge}>
+          <div className="logo-badge">
             <Zap size={24} color="#38bdf8" />
           </div>
           <div>
-            <h1 style={styles.headerTitle}>AI QA Engineer Assistant</h1>
-            <p style={styles.headerSubtitle}>
+            <h1 className="header-title">AI QA Engineer Assistant</h1>
+            <p className="header-subtitle">
               AI Explorer • ISTQB Test Strategy • Playwright Automation • Human-in-the-Loop Verification • Excel Reporting
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span style={styles.badge}>ISTQB Compliant</span>
-          <span style={styles.badgeGlow}>🏆 200 XP Challenge Ready</span>
+          <span className="badge">ISTQB Compliant</span>
+          <span className="badge-glow">🏆 200 XP Challenge Ready</span>
         </div>
       </header>
 
       {/* CARD 0: AI WEBSITE EXPLORER (BONUS FEATURE) */}
       <section style={{ marginBottom: 24 }}>
-        <div style={{ ...styles.card, borderColor: "rgba(56, 189, 248, 0.4)" }}>
-          <div style={styles.cardHeaderBetween}>
+        <div className="card card-explorer">
+          <div className="card-header-between">
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ ...styles.stepNum, backgroundColor: "#0284c7" }}>0</span>
-              <h2 style={styles.cardTitle}>AI Website Explorer (Bonus Feature)</h2>
+              <span className="step-num step-num-explorer">0</span>
+              <h2 className="card-title">AI Website Explorer (Bonus Feature)</h2>
             </div>
             <span style={{ fontSize: 12, color: "#38bdf8", fontWeight: "600" }}>Playwright Web Scraper & Gemini AI Flow Analysis</span>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-            <div style={styles.inputUrlWrapper}>
+            <div className="input-url-wrapper">
               <Globe size={18} color="#94a3b8" />
               <input
                 type="text"
-                style={styles.urlInput}
+                className="url-input"
                 value={targetUrl}
                 onChange={(e) => setTargetUrl(e.target.value)}
                 placeholder="Nhập URL website (vd: https://automationexercise.com)"
               />
             </div>
             <button
-              style={{
-                ...styles.button,
-                width: "220px",
-                backgroundColor: loadingExplore ? "#4b5563" : "#0284c7",
-              }}
+              className={`button button-explore ${loadingExplore ? 'button-disabled' : ''}`}
               onClick={handleExploreWebsite}
               disabled={loadingExplore}
             >
@@ -395,9 +399,9 @@ export default function App() {
 
           {/* Result of Website Exploration */}
           {exploration && (
-            <div style={styles.explorerResultBox}>
+            <div className="explorer-result-box">
               <div style={{ marginBottom: 12 }}>
-                <span style={styles.exploreBadge}>WEBSITE ARCHITECTURE</span>
+                <span className="explore-badge">WEBSITE ARCHITECTURE</span>
                 <p style={{ margin: "6px 0 0 0", fontSize: 13, color: "#cbd5e1" }}>
                   {exploration.summary}
                 </p>
@@ -405,11 +409,11 @@ export default function App() {
 
               {/* 3 Top User Flows */}
               <div style={{ marginBottom: 14 }}>
-                <label style={styles.sectionLabel}>📌 Top 3 Key User Flows Identified:</label>
+                <label className="section-label">📌 Top 3 Key User Flows Identified:</label>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 6 }}>
                   {(exploration.userFlows || []).map((flow, idx) => (
-                    <div key={idx} style={styles.flowCard}>
-                      <span style={styles.flowNum}>Flow #{idx + 1}</span>
+                    <div key={idx} className="flow-card">
+                      <span className="flow-num">Flow #{idx + 1}</span>
                       <span style={{ fontSize: 12, color: "#e2e8f0" }}>{flow}</span>
                     </div>
                   ))}
@@ -418,11 +422,11 @@ export default function App() {
 
               {/* Suggested User Story */}
               {exploration.suggestedRequirement && (
-                <div style={styles.suggestedBox}>
+                <div className="suggested-box">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <label style={styles.sectionLabel}>💡 AI Suggested User Story:</label>
+                    <label className="section-label">💡 AI Suggested User Story:</label>
                     <button
-                      style={styles.applyBtn}
+                      className="apply-btn"
                       onClick={() => applySuggestedRequirement(exploration.suggestedRequirement)}
                     >
                       <ArrowRight size={14} />
@@ -440,29 +444,26 @@ export default function App() {
       </section>
 
       {/* Main Grid Content */}
-      <main style={styles.mainGrid}>
+      <main className="main-grid">
         {/* CỘT BÊN TRÁI: REQUIREMENT, STRATEGY & TEST SUITE */}
-        <section style={styles.column}>
+        <section className="column">
           {/* CARD 1: REQUIREMENT INPUT */}
-          <div style={styles.card}>
-            <div style={styles.cardHeaderBetween}>
+          <div className="card">
+            <div className="card-header-between">
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={styles.stepNum}>1</span>
-                <h2 style={styles.cardTitle}>Requirement / User Story</h2>
+                <span className="step-num">1</span>
+                <h2 className="card-title">Requirement / User Story</h2>
               </div>
             </div>
             <textarea
-              style={styles.textarea}
+              className="textarea"
               rows={4}
               value={requirement}
               onChange={(e) => setRequirement(e.target.value)}
               placeholder="Paste user story or feature requirements here..."
             />
             <button
-              style={{
-                ...styles.button,
-                backgroundColor: loadingGenerate ? "#4b5563" : "#2563eb",
-              }}
+              className={`button ${loadingGenerate ? 'button-disabled' : 'button-primary'}`}
               onClick={handleGenerateTests}
               disabled={loadingGenerate}
             >
@@ -482,33 +483,33 @@ export default function App() {
 
           {/* CARD 2: TEST STRATEGY VIEW (MANDATORY FEATURE) */}
           {testStrategy && (
-            <div style={{ ...styles.card, borderLeft: "4px solid #38bdf8" }}>
-              <div style={styles.cardHeaderBetween}>
+            <div className="card card-strategy">
+              <div className="card-header-between">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <ShieldCheck size={20} color="#38bdf8" />
-                  <h2 style={{ ...styles.cardTitle, color: "#38bdf8" }}>
+                  <h2 className="card-title" style={{ color: "#38bdf8" }}>
                     {testStrategy.title || "ISTQB Test Strategy Overview"}
                   </h2>
                 </div>
-                <span style={styles.badgeGlow}>QA Strategy Framework</span>
+                <span className="badge-glow">QA Strategy Framework</span>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {/* 1. Scope of Testing */}
-                <div style={styles.strategyBlock}>
-                  <div style={styles.strategyHeader}>
+                <div className="strategy-block">
+                  <div className="strategy-header">
                     <Layers size={15} color="#60a5fa" />
                     <span>1. Scope of Testing</span>
                   </div>
                   <div style={{ fontSize: 12 }}>
                     <div style={{ color: "#34d399", fontWeight: "600", marginBottom: 2 }}>Included:</div>
-                    <ul style={styles.strategyList}>
+                    <ul className="strategy-list">
                       {(testStrategy.scope?.included || []).map((item, i) => (
                         <li key={i}>{item}</li>
                       ))}
                     </ul>
                     <div style={{ color: "#f87171", fontWeight: "600", margin: "6px 0 2px 0" }}>Excluded:</div>
-                    <ul style={styles.strategyList}>
+                    <ul className="strategy-list">
                       {(testStrategy.scope?.excluded || []).map((item, i) => (
                         <li key={i}>{item}</li>
                       ))}
@@ -517,12 +518,12 @@ export default function App() {
                 </div>
 
                 {/* 2. Test Approach */}
-                <div style={styles.strategyBlock}>
-                  <div style={styles.strategyHeader}>
+                <div className="strategy-block">
+                  <div className="strategy-header">
                     <Compass size={15} color="#a78bfa" />
                     <span>2. Test Approach & Methodologies</span>
                   </div>
-                  <ul style={styles.strategyList}>
+                  <ul className="strategy-list">
                     {(testStrategy.approach || []).map((item, i) => (
                       <li key={i}>{item}</li>
                     ))}
@@ -530,12 +531,12 @@ export default function App() {
                 </div>
 
                 {/* 3. Environment & Tools */}
-                <div style={styles.strategyBlock}>
-                  <div style={styles.strategyHeader}>
+                <div className="strategy-block">
+                  <div className="strategy-header">
                     <Cpu size={15} color="#f59e0b" />
                     <span>3. Environment & Automation Tools</span>
                   </div>
-                  <ul style={styles.strategyList}>
+                  <ul className="strategy-list">
                     {(testStrategy.environment || []).map((item, i) => (
                       <li key={i}>{item}</li>
                     ))}
@@ -543,8 +544,8 @@ export default function App() {
                 </div>
 
                 {/* 4. Risk Assessment & Mitigation */}
-                <div style={styles.strategyBlock}>
-                  <div style={styles.strategyHeader}>
+                <div className="strategy-block">
+                  <div className="strategy-header">
                     <AlertOctagon size={15} color="#ef4444" />
                     <span>4. Risk Assessment & Mitigation</span>
                   </div>
@@ -566,27 +567,24 @@ export default function App() {
 
           {/* CARD 3: TEST CASES TABLE & HUMAN VERIFICATION */}
           {testCases.length > 0 && (
-            <div style={styles.card}>
-              <div style={styles.cardHeaderBetween}>
+            <div className="card">
+              <div className="card-header-between">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={styles.stepNum}>2</span>
+                  <span className="step-num">2</span>
                   <div>
-                    <h2 style={styles.cardTitle}>Human Verification & Test Suite</h2>
-                    <span style={styles.subTextCount}>
+                    <h2 className="card-title">Human Verification & Test Suite</h2>
+                    <span className="sub-text-count">
                       Đã chọn {selectedIds.size}/{testCases.length} test cases để chạy
                     </span>
                   </div>
                 </div>
 
                 {/* Tab Filtering */}
-                <div style={styles.tabContainer}>
+                <div className="tab-container">
                   {["ALL", "POSITIVE", "NEGATIVE", "BOUNDARY", "VALIDATION"].map((tab) => (
                     <button
                       key={tab}
-                      style={{
-                        ...styles.tabBtn,
-                        ...(activeTab === tab ? styles.tabBtnActive : {}),
-                      }}
+                      className={`tab-btn ${activeTab === tab ? 'tab-btn-active' : ''}`}
                       onClick={() => setActiveTab(tab)}
                     >
                       {tab}
@@ -596,9 +594,9 @@ export default function App() {
               </div>
 
               {/* Toolbar controls (Excel export, Headless toggle, Select all) */}
-              <div style={styles.toolbar}>
+              <div className="toolbar">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <button style={styles.iconActionBtn} onClick={toggleSelectAll}>
+                  <button className="icon-action-btn" onClick={toggleSelectAll}>
                     {isAllFilteredSelected ? (
                       <CheckSquare size={16} color="#38bdf8" />
                     ) : (
@@ -607,15 +605,11 @@ export default function App() {
                     <span>{isAllFilteredSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}</span>
                   </button>
 
-                  <div style={styles.dividerVertical} />
+                  <div className="divider-vertical" />
 
                   {/* Toggle Headless / Headed */}
                   <button
-                    style={{
-                      ...styles.toggleBtn,
-                      backgroundColor: headless ? "#1e293b" : "#3b82f6",
-                      borderColor: headless ? "#334155" : "#60a5fa",
-                    }}
+                    className={`toggle-btn ${headless ? 'toggle-btn-headless' : 'toggle-btn-headed'}`}
                     onClick={() => setHeadless(!headless)}
                     title="Chuyển đổi chế độ xem trực tiếp trình duyệt Chromium"
                   >
@@ -625,18 +619,18 @@ export default function App() {
                 </div>
 
                 {/* Export Excel Button */}
-                <button style={styles.excelExportBtn} onClick={exportFullReportToExcel}>
+                <button className="excel-export-btn" onClick={exportFullReportToExcel}>
                   <FileSpreadsheet size={16} />
                   <span>Xuất Excel (.xlsx)</span>
                 </button>
               </div>
 
               {/* Editable Test Cases Table */}
-              <div style={styles.tableWrapper}>
-                <table style={styles.table}>
+              <div className="table-wrapper">
+                <table className="table">
                   <thead>
                     <tr>
-                      <th style={{ ...styles.th, width: 40, textAlign: "center" }}>
+                      <th className="th" style={{ width: 40, textAlign: "center" }}>
                         <input
                           type="checkbox"
                           checked={isAllFilteredSelected}
@@ -644,12 +638,12 @@ export default function App() {
                           style={{ cursor: "pointer" }}
                         />
                       </th>
-                      <th style={{ ...styles.th, width: 65 }}>ID</th>
-                      <th style={{ ...styles.th, width: 95 }}>Phân loại</th>
-                      <th style={styles.th}>Kịch bản (Scenario) - Inline Edit</th>
-                      <th style={{ ...styles.th, width: 140 }}>Name Input</th>
-                      <th style={{ ...styles.th, width: 160 }}>Email Input</th>
-                      <th style={styles.th}>Expected Result</th>
+                      <th className="th" style={{ width: 65 }}>ID</th>
+                      <th className="th" style={{ width: 95 }}>Phân loại</th>
+                      <th className="th">Kịch bản (Scenario) - Inline Edit</th>
+                      <th className="th" style={{ width: 140 }}>Name Input</th>
+                      <th className="th" style={{ width: 160 }}>Email Input</th>
+                      <th className="th">Expected Result</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -658,12 +652,9 @@ export default function App() {
                       return (
                         <tr
                           key={tc.id}
-                          style={{
-                            ...styles.tr,
-                            backgroundColor: isSelected ? "rgba(59, 130, 246, 0.05)" : "transparent",
-                          }}
+                          className={`tr ${isSelected ? 'tr-selected' : ''}`}
                         >
-                          <td style={{ ...styles.td, textAlign: "center" }}>
+                          <td className="td" style={{ textAlign: "center" }}>
                             <input
                               type="checkbox"
                               checked={isSelected}
@@ -671,28 +662,28 @@ export default function App() {
                               style={{ cursor: "pointer" }}
                             />
                           </td>
-                          <td style={{ ...styles.td, fontWeight: "bold", color: "#60a5fa" }}>
+                          <td className="td" style={{ fontWeight: "bold", color: "#60a5fa" }}>
                             {tc.id}
                           </td>
-                          <td style={styles.td}>
-                            <span style={getTagStyle(tc.type)}>{tc.type}</span>
+                          <td className="td">
+                            <span className={getTagClass(tc.type)}>{tc.type}</span>
                           </td>
 
                           {/* Editable Title */}
-                          <td style={styles.td}>
+                          <td className="td">
                             <input
                               type="text"
-                              style={styles.inlineInput}
+                              className="inline-input"
                               value={tc.title}
                               onChange={(e) => handleCellEdit(tc.id, "title", e.target.value)}
                             />
                           </td>
 
                           {/* Editable Name Input */}
-                          <td style={styles.td}>
+                          <td className="td">
                             <input
                               type="text"
-                              style={styles.inlineInputCode}
+                              className="inline-input-code"
                               value={tc.name_input || ""}
                               placeholder="(empty)"
                               onChange={(e) => handleCellEdit(tc.id, "name_input", e.target.value)}
@@ -700,10 +691,10 @@ export default function App() {
                           </td>
 
                           {/* Editable Email Input */}
-                          <td style={styles.td}>
+                          <td className="td">
                             <input
                               type="text"
-                              style={styles.inlineInputCode}
+                              className="inline-input-code"
                               value={tc.email_input || ""}
                               placeholder="(empty)"
                               onChange={(e) => handleCellEdit(tc.id, "email_input", e.target.value)}
@@ -711,10 +702,11 @@ export default function App() {
                           </td>
 
                           {/* Editable Expected Result */}
-                          <td style={styles.td}>
+                          <td className="td">
                             <input
                               type="text"
-                              style={{ ...styles.inlineInput, color: "#9ca3af" }}
+                              className="inline-input"
+                              style={{ color: "#9ca3af" }}
                               value={tc.expected || ""}
                               onChange={(e) => handleCellEdit(tc.id, "expected", e.target.value)}
                             />
@@ -727,12 +719,9 @@ export default function App() {
               </div>
 
               {/* Run Actions */}
-              <div style={styles.runActionGrid}>
+              <div className="run-action-grid">
                 <button
-                  style={{
-                    ...styles.button,
-                    backgroundColor: loadingRun ? "#4b5563" : "#10b981",
-                  }}
+                  className={`button ${loadingRun ? 'button-disabled' : 'button-run'}`}
                   onClick={() => handleRunTests("selected")}
                   disabled={loadingRun}
                 >
@@ -750,7 +739,7 @@ export default function App() {
                 </button>
 
                 <button
-                  style={styles.runAllSecondaryBtn}
+                  className="run-all-secondary-btn"
                   onClick={() => handleRunTests("all")}
                   disabled={loadingRun}
                 >
@@ -762,16 +751,16 @@ export default function App() {
         </section>
 
         {/* CỘT BÊN PHẢI: AUTOMATION RESULTS & AI BUG REPORT */}
-        <section style={styles.column}>
+        <section className="column">
           {/* CARD 4: PLAYWRIGHT EXECUTION RESULTS */}
-          <div style={styles.card}>
-            <div style={styles.cardHeaderBetween}>
+          <div className="card">
+            <div className="card-header-between">
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={styles.stepNum}>3</span>
-                <h2 style={styles.cardTitle}>Playwright Execution Results</h2>
+                <span className="step-num">3</span>
+                <h2 className="card-title">Playwright Execution Results</h2>
               </div>
               {testResults.length > 0 && (
-                <button style={styles.excelExportBtnSmall} onClick={exportFullReportToExcel}>
+                <button className="excel-export-btn-small" onClick={exportFullReportToExcel}>
                   <Download size={14} />
                   <span>Xuất Excel Summary</span>
                 </button>
@@ -779,9 +768,9 @@ export default function App() {
             </div>
 
             {testResults.length === 0 ? (
-              <div style={styles.emptyContainer}>
+              <div className="empty-container">
                 <Info size={32} color="#475569" />
-                <p style={styles.emptyText}>
+                <p className="empty-text">
                   Chưa có kết quả chạy tự động. Tích chọn các Test Cases và bấm nút "Run Selected Test Cases".
                 </p>
               </div>
@@ -790,33 +779,25 @@ export default function App() {
                 {testResults.map((res) => (
                   <div
                     key={res.id}
-                    style={{
-                      ...styles.resultRow,
-                      borderColor: res.status === "PASSED" ? "#059669" : "#dc2626",
-                    }}
+                    className={`result-row ${res.status === 'PASSED' ? 'result-passed' : 'result-failed'}`}
                   >
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                         <span style={{ fontWeight: "bold", color: "#60a5fa" }}>{res.id}</span>
-                        <span style={getTagStyle(res.type)}>{res.type}</span>
+                        <span className={getTagClass(res.type)}>{res.type}</span>
                         <span style={{ fontWeight: "600", fontSize: 13 }}>{res.title}</span>
                       </div>
                       <div style={{ fontSize: 12, color: "#94a3b8" }}>
                         Input: Name=<code>"{res.name_input}"</code> | Email=<code>"{res.email_input}"</code>
                       </div>
                       {res.error && (
-                        <div style={styles.errorSnippet}>
+                        <div className="error-snippet">
                           ⚠️ Error: {res.error}
                         </div>
                       )}
                     </div>
                     <span
-                      style={{
-                        ...styles.statusBadge,
-                        backgroundColor:
-                          res.status === "PASSED" ? "rgba(16, 185, 129, 0.2)" : "rgba(239, 68, 68, 0.2)",
-                        color: res.status === "PASSED" ? "#34d399" : "#f87171",
-                      }}
+                      className={`status-badge ${res.status === 'PASSED' ? 'status-passed' : 'status-failed'}`}
                     >
                       {res.status === "PASSED" ? (
                         <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -836,16 +817,16 @@ export default function App() {
 
           {/* CARD 5: AI BUG REPORT & VISUAL SCREENSHOT EVIDENCE */}
           {bugReports.length > 0 && (
-            <div style={styles.card}>
-              <div style={styles.cardHeader}>
-                <span style={{ ...styles.stepNum, backgroundColor: "#dc2626" }}>4</span>
-                <h2 style={styles.cardTitle}>AI Bug Report & Visual Screenshot Evidence</h2>
+            <div className="card">
+              <div className="card-header">
+                <span className="step-num step-num-bug">4</span>
+                <h2 className="card-title">AI Bug Report & Visual Screenshot Evidence</h2>
               </div>
 
               {bugReports.map((bug, index) => (
-                <div key={index} style={styles.bugCard}>
-                  <div style={styles.bugHeader}>
-                    <span style={styles.bugTag}>JIRA BUG REPORT</span>
+                <div key={index} className="bug-card">
+                  <div className="bug-header">
+                    <span className="bug-tag">JIRA BUG REPORT</span>
                     <h3 style={{ margin: 0, fontSize: 15, color: "#f8fafc" }}>
                       Incident: {bug.testId} - {bug.title}
                     </h3>
@@ -854,14 +835,14 @@ export default function App() {
                   {/* Screenshot Visual Evidence */}
                   {bug.screenshot && (
                     <div style={{ margin: "14px 0" }}>
-                      <label style={styles.evidenceLabel}>
+                      <label className="evidence-label">
                         📷 Screenshot Evidence (Playwright Captured on Failure):
                       </label>
                       <a href={bug.screenshot} target="_blank" rel="noopener noreferrer">
                         <img
                           src={bug.screenshot}
                           alt="Bug Evidence Screenshot"
-                          style={styles.screenshotImg}
+                          className="screenshot-img"
                           onError={(e) => {
                             e.target.style.display = "none";
                           }}
@@ -871,8 +852,8 @@ export default function App() {
                   )}
 
                   {/* Root Cause AI Analysis Markdown */}
-                  <div style={styles.markdownBox}>
-                    <pre style={styles.preformatted}>{bug.report}</pre>
+                  <div className="markdown-box">
+                    <pre className="preformatted">{bug.report}</pre>
                   </div>
                 </div>
               ))}
@@ -884,538 +865,31 @@ export default function App() {
   );
 }
 
-// Helpers
-function getTagStyle(type = "") {
-  const base = {
-    padding: "3px 8px",
-    borderRadius: "4px",
-    fontSize: "11px",
-    fontWeight: "600",
-    display: "inline-block",
-  };
+// Helpers cho CSS Class
+function getTagClass(type = "") {
   switch ((type || "").toUpperCase()) {
     case "POSITIVE":
-      return { ...base, backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)" };
+      return "tag-badge tag-positive";
     case "NEGATIVE":
-      return { ...base, backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.3)" };
+      return "tag-badge tag-negative";
     case "BOUNDARY":
-      return { ...base, backgroundColor: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", border: "1px solid rgba(245, 158, 11, 0.3)" };
+      return "tag-badge tag-boundary";
     case "VALIDATION":
-      return { ...base, backgroundColor: "rgba(139, 92, 246, 0.15)", color: "#a78bfa", border: "1px solid rgba(139, 92, 246, 0.3)" };
+      return "tag-badge tag-validation";
     default:
-      return { ...base, backgroundColor: "#374151", color: "#d1d5db" };
+      return "tag-badge tag-default";
   }
 }
 
-function getToastStyle(type) {
+function getToastClass(type) {
   switch (type) {
     case "success":
-      return { backgroundColor: "#065f46", color: "#6ee7b7", border: "1px solid #047857" };
+      return "toast toast-success";
     case "error":
-      return { backgroundColor: "#991b1b", color: "#fca5a5", border: "1px solid #b91c1c" };
+      return "toast toast-error";
     case "warning":
-      return { backgroundColor: "#92400e", color: "#fde68a", border: "1px solid #b45309" };
+      return "toast toast-warning";
     default:
-      return { backgroundColor: "#1e293b", color: "#38bdf8", border: "1px solid #334155" };
+      return "toast toast-info";
   }
 }
-
-// Styles CSS Dark Theme
-const styles = {
-  container: {
-    minHeight: "100vh",
-    backgroundColor: "#0f172a",
-    color: "#f8fafc",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    padding: "24px 32px",
-    boxSizing: "border-box",
-    position: "relative",
-  },
-  toast: {
-    position: "fixed",
-    top: 20,
-    right: 24,
-    zIndex: 9999,
-    padding: "12px 18px",
-    borderRadius: 8,
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    fontSize: 14,
-    fontWeight: "500",
-    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
-    animation: "fadeIn 0.3s ease",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottom: "1px solid #1e293b",
-    paddingBottom: 20,
-    marginBottom: 24,
-  },
-  logoBadge: {
-    backgroundColor: "#1e293b",
-    padding: 10,
-    borderRadius: 12,
-    border: "1px solid #334155",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    margin: 0,
-    letterSpacing: "-0.5px",
-    background: "linear-gradient(to right, #ffffff, #94a3b8)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: "#94a3b8",
-    margin: "4px 0 0 0",
-  },
-  badge: {
-    backgroundColor: "#1e293b",
-    color: "#38bdf8",
-    padding: "6px 12px",
-    borderRadius: "20px",
-    fontSize: 12,
-    fontWeight: "600",
-    border: "1px solid #334155",
-  },
-  badgeGlow: {
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
-    color: "#34d399",
-    padding: "6px 12px",
-    borderRadius: "20px",
-    fontSize: 12,
-    fontWeight: "600",
-    border: "1px solid rgba(16, 185, 129, 0.3)",
-  },
-  mainGrid: {
-    display: "grid",
-    gridTemplateColumns: "1.3fr 1fr",
-    gap: 24,
-    alignItems: "start",
-  },
-  column: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 24,
-  },
-  card: {
-    backgroundColor: "#1e293b",
-    borderRadius: 12,
-    border: "1px solid #334155",
-    padding: 20,
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-  },
-  cardHeaderBetween: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  cardHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
-  },
-  stepNum: {
-    backgroundColor: "#2563eb",
-    color: "#fff",
-    borderRadius: "50%",
-    width: 28,
-    height: 28,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 13,
-    fontWeight: "bold",
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    margin: 0,
-  },
-  inputUrlWrapper: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "#0f172a",
-    border: "1px solid #334155",
-    borderRadius: 8,
-    padding: "0 12px",
-  },
-  urlInput: {
-    width: "100%",
-    backgroundColor: "transparent",
-    border: "none",
-    color: "#38bdf8",
-    padding: "10px 0",
-    fontSize: 13,
-    outline: "none",
-    fontFamily: "monospace",
-  },
-  explorerResultBox: {
-    backgroundColor: "#0f172a",
-    borderRadius: 8,
-    padding: 14,
-    border: "1px solid #334155",
-  },
-  exploreBadge: {
-    backgroundColor: "rgba(2, 132, 199, 0.2)",
-    color: "#38bdf8",
-    padding: "2px 8px",
-    borderRadius: 4,
-    fontSize: 10,
-    fontWeight: "700",
-    border: "1px solid rgba(2, 132, 199, 0.4)",
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#94a3b8",
-  },
-  flowCard: {
-    backgroundColor: "#1e293b",
-    border: "1px solid #334155",
-    borderRadius: 6,
-    padding: 10,
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-  },
-  flowNum: {
-    fontSize: 10,
-    color: "#38bdf8",
-    fontWeight: "700",
-  },
-  suggestedBox: {
-    backgroundColor: "rgba(30, 58, 138, 0.25)",
-    border: "1px solid rgba(59, 130, 246, 0.3)",
-    borderRadius: 6,
-    padding: 12,
-    marginTop: 10,
-  },
-  applyBtn: {
-    backgroundColor: "#2563eb",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: 4,
-    padding: "4px 10px",
-    fontSize: 11,
-    fontWeight: "600",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-  },
-  strategyBlock: {
-    backgroundColor: "#0f172a",
-    borderRadius: 8,
-    padding: 12,
-    border: "1px solid #334155",
-  },
-  strategyHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    fontWeight: "600",
-    fontSize: 13,
-    marginBottom: 8,
-    color: "#f8fafc",
-  },
-  strategyList: {
-    margin: 0,
-    paddingLeft: 16,
-    color: "#cbd5e1",
-    fontSize: 11,
-    lineHeight: "1.6",
-  },
-  subTextCount: {
-    fontSize: 12,
-    color: "#38bdf8",
-    marginTop: 2,
-    display: "block",
-  },
-  textarea: {
-    width: "100%",
-    backgroundColor: "#0f172a",
-    border: "1px solid #334155",
-    borderRadius: 8,
-    color: "#e2e8f0",
-    padding: 12,
-    fontSize: 13,
-    outline: "none",
-    boxSizing: "border-box",
-    marginBottom: 16,
-    lineHeight: "1.5",
-    resize: "vertical",
-  },
-  button: {
-    width: "100%",
-    padding: "12px",
-    borderRadius: 8,
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 14,
-    border: "none",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    transition: "all 0.2s",
-  },
-  tabContainer: {
-    display: "flex",
-    gap: 6,
-  },
-  tabBtn: {
-    backgroundColor: "#0f172a",
-    color: "#94a3b8",
-    border: "1px solid #334155",
-    borderRadius: 6,
-    padding: "4px 10px",
-    fontSize: 11,
-    cursor: "pointer",
-    fontWeight: "500",
-    transition: "all 0.2s",
-  },
-  tabBtnActive: {
-    backgroundColor: "#2563eb",
-    color: "#ffffff",
-    borderColor: "#3b82f6",
-  },
-  toolbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#0f172a",
-    padding: "8px 12px",
-    borderRadius: 8,
-    marginBottom: 12,
-    border: "1px solid #334155",
-  },
-  iconActionBtn: {
-    backgroundColor: "transparent",
-    border: "none",
-    color: "#cbd5e1",
-    fontSize: 12,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    fontWeight: "500",
-  },
-  toggleBtn: {
-    border: "1px solid",
-    borderRadius: 6,
-    padding: "5px 10px",
-    fontSize: 12,
-    color: "#ffffff",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    transition: "all 0.2s",
-  },
-  excelExportBtn: {
-    backgroundColor: "#065f46",
-    color: "#6ee7b7",
-    border: "1px solid #047857",
-    borderRadius: 6,
-    padding: "5px 12px",
-    fontSize: 12,
-    fontWeight: "600",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-  },
-  excelExportBtnSmall: {
-    backgroundColor: "#065f46",
-    color: "#6ee7b7",
-    border: "1px solid #047857",
-    borderRadius: 6,
-    padding: "4px 8px",
-    fontSize: 11,
-    fontWeight: "600",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-  },
-  dividerVertical: {
-    width: 1,
-    height: 18,
-    backgroundColor: "#334155",
-  },
-  tableWrapper: {
-    overflowX: "auto",
-    maxHeight: "400px",
-    borderRadius: 8,
-    border: "1px solid #334155",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    textAlign: "left",
-    fontSize: 13,
-  },
-  th: {
-    backgroundColor: "#0f172a",
-    padding: "10px 12px",
-    color: "#94a3b8",
-    fontWeight: "600",
-    position: "sticky",
-    top: 0,
-    borderBottom: "1px solid #334155",
-    zIndex: 2,
-  },
-  tr: {
-    borderBottom: "1px solid #334155",
-    transition: "background-color 0.15s",
-  },
-  td: {
-    padding: "8px 10px",
-    verticalAlign: "middle",
-  },
-  inlineInput: {
-    width: "100%",
-    backgroundColor: "transparent",
-    border: "1px solid transparent",
-    borderRadius: 4,
-    color: "#f8fafc",
-    fontSize: 12,
-    padding: "4px 6px",
-    outline: "none",
-    transition: "border-color 0.2s, background-color 0.2s",
-    boxSizing: "border-box",
-  },
-  inlineInputCode: {
-    width: "100%",
-    backgroundColor: "#0f172a",
-    border: "1px solid #334155",
-    borderRadius: 4,
-    color: "#38bdf8",
-    fontFamily: "monospace",
-    fontSize: 12,
-    padding: "4px 6px",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-  runActionGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 140px",
-    gap: 12,
-    marginTop: 16,
-  },
-  runAllSecondaryBtn: {
-    backgroundColor: "#1e293b",
-    color: "#cbd5e1",
-    border: "1px solid #334155",
-    borderRadius: 8,
-    fontWeight: "600",
-    fontSize: 13,
-    cursor: "pointer",
-    transition: "all 0.2s",
-  },
-  emptyContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "36px 16px",
-    gap: 12,
-  },
-  emptyText: {
-    color: "#64748b",
-    fontSize: 13,
-    textAlign: "center",
-    margin: 0,
-  },
-  resultRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    backgroundColor: "#0f172a",
-    padding: "12px 14px",
-    borderRadius: 8,
-    borderLeftWidth: "4px",
-    borderLeftStyle: "solid",
-  },
-  statusBadge: {
-    padding: "4px 10px",
-    borderRadius: 6,
-    fontSize: 12,
-    fontWeight: "700",
-    whiteSpace: "nowrap",
-  },
-  errorSnippet: {
-    marginTop: 6,
-    fontSize: 12,
-    color: "#f87171",
-    backgroundColor: "rgba(239, 68, 68, 0.1)",
-    padding: "6px 8px",
-    borderRadius: 4,
-    border: "1px solid rgba(239, 68, 68, 0.2)",
-  },
-  bugCard: {
-    backgroundColor: "#0f172a",
-    borderRadius: 8,
-    padding: 16,
-    border: "1px solid rgba(220, 38, 38, 0.4)",
-    marginTop: 12,
-  },
-  bugHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 8,
-  },
-  bugTag: {
-    backgroundColor: "#dc2626",
-    color: "#fff",
-    padding: "2px 6px",
-    borderRadius: 4,
-    fontSize: 10,
-    fontWeight: "bold",
-  },
-  evidenceLabel: {
-    display: "block",
-    fontSize: 12,
-    color: "#94a3b8",
-    marginBottom: 6,
-    fontWeight: "500",
-  },
-  screenshotImg: {
-    width: "100%",
-    maxHeight: "240px",
-    objectFit: "cover",
-    borderRadius: 6,
-    border: "1px solid #334155",
-    cursor: "pointer",
-  },
-  markdownBox: {
-    backgroundColor: "#182234",
-    padding: 12,
-    borderRadius: 6,
-    border: "1px solid #334155",
-    overflowX: "auto",
-  },
-  preformatted: {
-    margin: 0,
-    fontSize: 12,
-    color: "#cbd5e1",
-    fontFamily: "monospace",
-    whiteSpace: "pre-wrap",
-    lineHeight: "1.5",
-  },
-};
