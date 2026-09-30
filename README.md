@@ -7,8 +7,7 @@
 [![Automation](https://img.shields.io/badge/Automation-Playwright%20Chromium-red.svg)](https://playwright.dev/)
 [![AI Engine](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%20API-orange.svg)](https://ai.google.dev/)
 
-> **Tên ứng dụng:** **Autonomous AI QA Engineer Assistant**  
-> **Người thực hiện:** Huỳnh Lê Tiến Hiển 
+> **Tên ứng dụng:** **Autonomous AI QA Engineer Assistant** 
 
 ---
 
