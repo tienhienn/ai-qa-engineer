@@ -62,12 +62,12 @@ export default function App() {
   // 0. BONUS FEATURE: AI WEBSITE EXPLORER
   const handleExploreWebsite = async () => {
     if (!targetUrl.trim()) {
-      showToast("Vui lòng nhập URL trang web!", "warning");
+      showToast("Please enter a website URL!", "warning");
       return;
     }
     setLoadingExplore(true);
     try {
-      showToast("🔍 Playwright đang mở trang web & AI trích xuất cấu trúc...", "info");
+      showToast("🔍 Playwright is navigating to website & AI extracting DOM structure...", "info");
       const response = await fetch("http://localhost:5000/api/explore-website", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,15 +78,15 @@ export default function App() {
       try {
         data = await response.json();
       } catch (jsonErr) {
-        throw new Error(`Server trả về HTTP ${response.status} (${response.statusText}). Vui lòng đảm bảo server.js bản mới nhất đang chạy!`);
+        throw new Error(`Server returned HTTP ${response.status} (${response.statusText}). Please ensure backend server.js is running!`);
       }
 
-      if (!response.ok) throw new Error(data.error || "Lỗi explore website");
+      if (!response.ok) throw new Error(data.error || "Website exploration failed");
 
       setExploration(data.exploration);
-      showToast("🌐 AI đã phân tích xong cấu trúc Website & các User Flows!", "success");
+      showToast("🌐 AI analyzed Website structure & User Flows successfully!", "success");
     } catch (err) {
-      showToast(`Lỗi Explore: ${err.message}`, "error");
+      showToast(`Explore Error: ${err.message}`, "error");
       console.error(err);
     } finally {
       setLoadingExplore(false);
@@ -96,21 +96,21 @@ export default function App() {
   const applySuggestedRequirement = (suggested) => {
     if (suggested) {
       setRequirement(suggested);
-      showToast("⚡ Đã áp dụng User Story gợi ý vào ô Requirement!", "success");
+      showToast("⚡ Applied suggested User Story to Requirement input!", "success");
     }
   };
 
-  // 1. MANDATORY FEATURE: GỌI API SINH TEST STRATEGY & 15+ TEST CASES
+  // 1. MANDATORY FEATURE: GENERATE TEST STRATEGY & 15+ TEST CASES
   const handleGenerateTests = async () => {
     if (!requirement.trim()) {
-      showToast("Vui lòng nhập Requirement trước khi sinh test cases!", "warning");
+      showToast("Please enter a Requirement before generating test cases!", "warning");
       return;
     }
     setLoadingGenerate(true);
     setTestResults([]);
     setBugReports([]);
     try {
-      showToast("🤖 AI đang lập Test Strategy & sinh 15+ Test Cases...", "info");
+      showToast("🤖 AI is formulating Test Strategy & 15+ Test Cases...", "info");
       const response = await fetch("http://localhost:5000/api/generate-tests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,25 +121,25 @@ export default function App() {
       try {
         data = await response.json();
       } catch (jsonErr) {
-        throw new Error(`Server trả về HTTP ${response.status} (${response.statusText}). Vui lòng khởi động lại server.js!`);
+        throw new Error(`Server returned HTTP ${response.status} (${response.statusText}). Please restart server.js!`);
       }
 
-      if (!response.ok) throw new Error(data.error || "Lỗi sinh Test Cases");
+      if (!response.ok) throw new Error(data.error || "Test Case generation failed");
 
       const generatedCases = data.testCases || [];
       setTestStrategy(data.testStrategy || null);
       setTestCases(generatedCases);
       setSelectedIds(new Set(generatedCases.map((tc) => tc.id)));
-      showToast(`✨ Đã sinh thành công Test Strategy & ${generatedCases.length} Test Cases!`, "success");
+      showToast(`✨ Generated Test Strategy & ${generatedCases.length} Test Cases successfully!`, "success");
     } catch (err) {
-      showToast(`Lỗi: ${err.message}`, "error");
+      showToast(`Error: ${err.message}`, "error");
       console.error(err);
     } finally {
       setLoadingGenerate(false);
     }
   };
 
-  // Quản lý Checkbox Chọn Test Cases (Human-in-the-loop)
+  // Manage Checkbox Selection for Test Cases (Human-in-the-loop)
   const toggleSelectCase = (id) => {
     const next = new Set(selectedIds);
     if (next.has(id)) {
@@ -162,14 +162,14 @@ export default function App() {
     }
   };
 
-  // Chỉnh sửa trực tiếp (Inline Edit) dữ liệu Test Cases
+  // Inline Edit Test Case Data
   const handleCellEdit = (id, field, value) => {
     setTestCases((prev) =>
       prev.map((tc) => (tc.id === id ? { ...tc, [field]: value } : tc))
     );
   };
 
-  // 2. CHẠY AUTOMATED TESTS VỚI PLAYWRIGHT
+  // 2. RUN AUTOMATED TESTS WITH PLAYWRIGHT
   const handleRunTests = async (runMode = "selected") => {
     let casesToRun = [];
     if (runMode === "all") {
@@ -179,7 +179,7 @@ export default function App() {
     }
 
     if (casesToRun.length === 0) {
-      showToast("Vui lòng tích chọn ít nhất 1 Test Case để thực thi!", "warning");
+      showToast("Please select at least 1 Test Case to execute!", "warning");
       return;
     }
 
@@ -187,7 +187,7 @@ export default function App() {
     setTestResults([]);
     setBugReports([]);
 
-    showToast(`🚀 Đang khởi tạo Playwright (${headless ? "Headless Mode" : "Headed UI Mode"})...`, "info");
+    showToast(`🚀 Initializing Playwright (${headless ? "Headless Mode" : "Headed UI Mode"})...`, "info");
 
     try {
       const response = await fetch("http://localhost:5000/api/run-tests", {
@@ -200,10 +200,10 @@ export default function App() {
       try {
         data = await response.json();
       } catch (jsonErr) {
-        throw new Error(`Server trả về HTTP ${response.status} (${response.statusText}). Vui lòng đảm bảo server.js đang chạy!`);
+        throw new Error(`Server returned HTTP ${response.status} (${response.statusText}). Please ensure server.js is running!`);
       }
 
-      if (!response.ok) throw new Error(data.error || "Lỗi chạy Playwright");
+      if (!response.ok) throw new Error(data.error || "Playwright execution failed");
 
       const results = data.results || [];
       setTestResults(results);
@@ -211,11 +211,11 @@ export default function App() {
       const passedCount = results.filter((r) => r.status === "PASSED").length;
       const failedCases = results.filter((r) => r.status === "FAILED");
 
-      showToast(`Hoàn tất! Pass: ${passedCount}/${results.length}, Fail: ${failedCases.length}`, failedCases.length > 0 ? "warning" : "success");
+      showToast(`Completed! Passed: ${passedCount}/${results.length}, Failed: ${failedCases.length}`, failedCases.length > 0 ? "warning" : "success");
 
-      // Tự động phân tích lỗi & lập Bug Report cho các case FAILED
+      // Auto Bug Analysis & Bug Report Generation
       if (failedCases.length > 0) {
-        showToast("🤖 AI đang phân tích nguyên nhân gốc & lập Bug Report...", "info");
+        showToast("🤖 AI is analyzing root cause & formulating Jira Bug Report...", "info");
         const generatedReports = [];
 
         for (const failed of failedCases) {
@@ -241,17 +241,17 @@ export default function App() {
         setBugReports(generatedReports);
       }
     } catch (err) {
-      showToast(`Lỗi chạy Playwright Automation: ${err.message}`, "error");
+      showToast(`Playwright Execution Error: ${err.message}`, "error");
       console.error(err);
     } finally {
       setLoadingRun(false);
     }
   };
 
-  // 3. TÍNH NĂNG XUẤT EXCEL 2-SHEET CHUẨN QA (1-CLICK EXPORT)
+  // 3. EXPORT 2-SHEET EXCEL REPORT
   const exportFullReportToExcel = () => {
     if (testCases.length === 0) {
-      showToast("Chưa có dữ liệu để xuất file Excel!", "warning");
+      showToast("No test case data available to export to Excel!", "warning");
       return;
     }
 
@@ -261,7 +261,7 @@ export default function App() {
     const sheet1Data = [];
 
     if (testStrategy) {
-      sheet1Data.push({ A: "=== ISTQB TEST STRATEGY OVERVIEW ===", B: "", C: "", D: "", E: "", F: "" });
+      sheet1Data.push({ A: "=== TEST STRATEGY OVERVIEW ===", B: "", C: "", D: "", E: "", F: "" });
       sheet1Data.push({ A: "Strategy Title", B: testStrategy.title || "Automated Test Strategy", C: "", D: "", E: "", F: "" });
       if (testStrategy.scope) {
         sheet1Data.push({ A: "Scope Included", B: (testStrategy.scope.included || []).join("; "), C: "", D: "", E: "", F: "" });
@@ -272,11 +272,11 @@ export default function App() {
 
     sheet1Data.push({
       A: "ID",
-      B: "Phân loại (Category)",
-      C: "Kịch bản (Scenario Title)",
+      B: "Category",
+      C: "Scenario Title",
       D: "Name Input",
       E: "Email Input",
-      F: "Kết quả mong đợi (Expected Result)"
+      F: "Expected Result"
     });
 
     testCases.forEach((tc) => {
@@ -298,11 +298,11 @@ export default function App() {
     if (testResults.length > 0) {
       const summaryData = testResults.map((r) => ({
         "Test ID": r.id,
-        "Phân loại": r.type || "",
-        "Tiêu đề Kịch bản": r.title,
-        "Trạng thái (Status)": r.status,
-        "Kết quả mong đợi": r.expected,
-        "Chi tiết lỗi (Error Log)": r.error || "None",
+        "Category": r.type || "",
+        "Scenario Title": r.title,
+        "Status": r.status,
+        "Expected Result": r.expected,
+        "Error Trace": r.error || "None",
         "Screenshot URL": r.screenshot || "N/A"
       }));
       const ws2 = XLSX.utils.json_to_sheet(summaryData);
@@ -311,7 +311,7 @@ export default function App() {
     }
 
     XLSX.writeFile(workbook, `QA_FullReport_${Date.now()}.xlsx`);
-    showToast("📊 Xuất Báo cáo Excel 2-Sheet thành công!", "success");
+    showToast("📊 Exported 2-Sheet Excel Report successfully!", "success");
   };
 
   // Lọc test cases theo tab
@@ -346,13 +346,9 @@ export default function App() {
           <div>
             <h1 className="header-title">AI QA Engineer Assistant</h1>
             <p className="header-subtitle">
-              AI Explorer • ISTQB Test Strategy • Playwright Automation • Human-in-the-Loop Verification • Excel Reporting
+              AI Explorer • Test Strategy • Playwright Automation • Human-in-the-Loop Verification • Excel Reporting
             </p>
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span className="badge">ISTQB Compliant</span>
-          <span className="badge-glow">🏆 200 XP Challenge Ready</span>
         </div>
       </header>
 
@@ -375,7 +371,7 @@ export default function App() {
                 className="url-input"
                 value={targetUrl}
                 onChange={(e) => setTargetUrl(e.target.value)}
-                placeholder="Nhập URL website (vd: https://automationexercise.com)"
+                placeholder="Enter target URL (e.g. https://automationexercise.com)"
               />
             </div>
             <button
@@ -386,7 +382,7 @@ export default function App() {
               {loadingExplore ? (
                 <>
                   <RefreshCw className="spin" size={16} />
-                  <span>AI đang khám phá...</span>
+                  <span>AI Exploring...</span>
                 </>
               ) : (
                 <>
@@ -430,7 +426,7 @@ export default function App() {
                       onClick={() => applySuggestedRequirement(exploration.suggestedRequirement)}
                     >
                       <ArrowRight size={14} />
-                      <span>⚡ Áp dụng vào ô Requirement</span>
+                      <span>⚡ Apply to Requirement</span>
                     </button>
                   </div>
                   <p style={{ margin: 0, fontSize: 12, color: "#93c5fd", fontStyle: "italic" }}>
@@ -445,7 +441,7 @@ export default function App() {
 
       {/* Main Grid Content */}
       <main className="main-grid">
-        {/* CỘT BÊN TRÁI: REQUIREMENT, STRATEGY & TEST SUITE */}
+        {/* LEFT COLUMN: REQUIREMENT, STRATEGY & TEST SUITE */}
         <section className="column">
           {/* CARD 1: REQUIREMENT INPUT */}
           <div className="card">
@@ -470,7 +466,7 @@ export default function App() {
               {loadingGenerate ? (
                 <>
                   <RefreshCw className="spin" size={18} />
-                  <span>AI đang sinh Test Strategy & 15+ Test Cases (Fallback)...</span>
+                  <span>AI Generating Test Strategy & 15+ Test Cases...</span>
                 </>
               ) : (
                 <>
@@ -488,7 +484,7 @@ export default function App() {
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <ShieldCheck size={20} color="#38bdf8" />
                   <h2 className="card-title" style={{ color: "#38bdf8" }}>
-                    {testStrategy.title || "ISTQB Test Strategy Overview"}
+                    {testStrategy.title || "Test Strategy Overview"}
                   </h2>
                 </div>
                 <span className="badge-glow">QA Strategy Framework</span>
@@ -574,7 +570,7 @@ export default function App() {
                   <div>
                     <h2 className="card-title">Human Verification & Test Suite</h2>
                     <span className="sub-text-count">
-                      Đã chọn {selectedIds.size}/{testCases.length} test cases để chạy
+                      Selected {selectedIds.size}/{testCases.length} test cases to execute
                     </span>
                   </div>
                 </div>
@@ -602,7 +598,7 @@ export default function App() {
                     ) : (
                       <Square size={16} color="#94a3b8" />
                     )}
-                    <span>{isAllFilteredSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}</span>
+                    <span>{isAllFilteredSelected ? "Deselect All" : "Select All"}</span>
                   </button>
 
                   <div className="divider-vertical" />
@@ -611,17 +607,17 @@ export default function App() {
                   <button
                     className={`toggle-btn ${headless ? 'toggle-btn-headless' : 'toggle-btn-headed'}`}
                     onClick={() => setHeadless(!headless)}
-                    title="Chuyển đổi chế độ xem trực tiếp trình duyệt Chromium"
+                    title="Toggle Chromium browser execution mode"
                   >
                     {headless ? <EyeOff size={15} /> : <Eye size={15} />}
-                    <span>{headless ? "Headless Mode (Ngầm)" : "Headed Mode (Bật UI Browser)"}</span>
+                    <span>{headless ? "Headless Mode (Background)" : "Headed Mode (Browser UI)"}</span>
                   </button>
                 </div>
 
                 {/* Export Excel Button */}
                 <button className="excel-export-btn" onClick={exportFullReportToExcel}>
                   <FileSpreadsheet size={16} />
-                  <span>Xuất Excel (.xlsx)</span>
+                  <span>Export Excel (.xlsx)</span>
                 </button>
               </div>
 
@@ -639,8 +635,8 @@ export default function App() {
                         />
                       </th>
                       <th className="th" style={{ width: 65 }}>ID</th>
-                      <th className="th" style={{ width: 95 }}>Phân loại</th>
-                      <th className="th">Kịch bản (Scenario) - Inline Edit</th>
+                      <th className="th" style={{ width: 95 }}>Category</th>
+                      <th className="th">Scenario (Inline Edit)</th>
                       <th className="th" style={{ width: 140 }}>Name Input</th>
                       <th className="th" style={{ width: 160 }}>Email Input</th>
                       <th className="th">Expected Result</th>
@@ -728,7 +724,7 @@ export default function App() {
                   {loadingRun ? (
                     <>
                       <RefreshCw className="spin" size={18} />
-                      <span>Playwright đang chạy {selectedIds.size} Test Cases...</span>
+                      <span>Playwright running {selectedIds.size} Test Cases...</span>
                     </>
                   ) : (
                     <>
@@ -743,14 +739,14 @@ export default function App() {
                   onClick={() => handleRunTests("all")}
                   disabled={loadingRun}
                 >
-                  <span>Chạy tất cả {testCases.length} Cases</span>
+                  <span>Run All {testCases.length} Cases</span>
                 </button>
               </div>
             </div>
           )}
         </section>
 
-        {/* CỘT BÊN PHẢI: AUTOMATION RESULTS & AI BUG REPORT */}
+        {/* RIGHT COLUMN: AUTOMATION RESULTS & AI BUG REPORT */}
         <section className="column">
           {/* CARD 4: PLAYWRIGHT EXECUTION RESULTS */}
           <div className="card">
@@ -762,7 +758,7 @@ export default function App() {
               {testResults.length > 0 && (
                 <button className="excel-export-btn-small" onClick={exportFullReportToExcel}>
                   <Download size={14} />
-                  <span>Xuất Excel Summary</span>
+                  <span>Export Excel Summary</span>
                 </button>
               )}
             </div>
@@ -771,7 +767,7 @@ export default function App() {
               <div className="empty-container">
                 <Info size={32} color="#475569" />
                 <p className="empty-text">
-                  Chưa có kết quả chạy tự động. Tích chọn các Test Cases và bấm nút "Run Selected Test Cases".
+                  No automated execution results yet. Select test cases above and click "Run Selected Test Cases".
                 </p>
               </div>
             ) : (
