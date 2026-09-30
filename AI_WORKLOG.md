@@ -13,7 +13,7 @@ Trong suốt quá trình xây dựng hệ thống **Autonomous AI QA Engineer As
 
 | Công cụ / SDK | Vai trò & Phạm vi ứng dụng |
 | :--- | :--- |
-| **Google Gemini API** (`gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash`) | Core AI Reasoning Engine: Phân tích User Story, lập Test Strategy ISTQB, sinh 15+ Test Cases (Structured JSON), bóc tách nguyên nhân lỗi FAILED và sinh Jira Bug Report. |
+| **Google Gemini API** (`gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`) | Core AI Reasoning Engine: Phân tích User Story, lập Test Strategy ISTQB, sinh 15+ Test Cases (Structured JSON), bóc tách nguyên nhân lỗi FAILED và sinh Jira Bug Report. |
 | **Antigravity AI Agent & Cursor IDE** | Hỗ trợ lập trình Pair-Programming, thiết kế RESTful API Express, xây dựng giao diện React Dark Theme Dashboard và tối ưu hóa xử lý lỗi bất đồng bộ (Async/Await). |
 | **Playwright CodeGen & Inspector** | Do thám cấu trúc DOM thực tế của trang target `https://automationexercise.com/login`, xác định các thuộc tính định danh chính xác như `data-qa="signup-name"`. |
 
@@ -39,22 +39,23 @@ Nhờ ứng dụng AI đúng cách với tư duy kiểm chứng (Human-in-the-Lo
 
 ## 💥 3. Where AI Hallucinated / Failed & How I Fixed It (Trọng tâm ghi điểm - Tư duy kiểm chứng)
 
-Trong quá trình phát triển, AI không phải lúc nào cũng hoạt động hoàn hảo. Dưới đây là 4 sự cố kỹ thuật thực tế (Hallucinations & Failure Cases) và giải pháp kiến trúc đã triển khai để khắc phục triệt để:
+Trong quá trình phát triển, AI không phải lúc nào cũng hoạt động hoàn hảo. Dưới đây là 4 sự cố kỹ thuật thực tế (Hallucinations & Failure Cases) và giải pháp kiến trúc đã triển khai để khắc phục triệt me:
 
 ---
 
 ### 🚨 Sự cố 1: Lỗi API 503 Overloaded & 404 Model Not Found khi gọi Gemini API
 - **Hiện tượng / Nguyên nhân:**
-  Khi hệ thống yêu cầu Gemini sinh đồng thời Test Strategy và 15+ Test Cases phức tạp, các model mới như `gemini-2.0-flash` hoặc `gemini-2.5-flash` thường xuyên phản hồi lỗi HTTP `503 Service Unavailable` (Server Overloaded) hoặc bị giới hạn Rate Limit (HTTP 429). Nếu chỉ dùng 1 model duy nhất, toàn bộ ứng dụng sẽ bị crash.
+  Các model tên cũ hoặc không được hỗ trợ API endpoint như `gemini-2.0-flash` hay `gemini-2.5-flash` sẽ bị lỗi `404 Model Not Found`, còn các model quá tải sẽ gặp lỗi HTTP `503 Service Unavailable` hoặc HTTP 429 Rate Limit. Nếu chỉ chỉ định 1 model cứng, hệ thống sẽ sập khi model đó bận hoặc 404.
 - **Tư duy kiểm chứng & Giải pháp khắc phục:**
-  Tự thiết kế cơ chế **Multi-Model Fallback Engine Cascade** với danh sách các model dự phòng xếp theo thứ tự ưu tiên, kết hợp thời gian chờ ngắt nhịp (Retry Timeout Delay):
+  Tự thiết kế cơ chế **Multi-Model Fallback Engine Cascade** với danh sách các model Gemini 3.x mới nhất và ổn định nhất, xếp theo thứ tự năng lực ưu tiên:
   ```javascript
   // Trích đoạn thực tế trong server.js
   async function callGeminiWithFallback(prompt) {
       const candidateModels = [
-          'gemini-2.5-flash',
-          'gemini-2.0-flash',
-          'gemini-1.5-flash',
+          'gemini-3.7-flash',
+          'gemini-3.6-flash',
+          'gemini-3.5-flash',
+          'gemini-3.5-flash-lite',
           'gemini-flash-lite-latest'
       ];
       let lastError = null;

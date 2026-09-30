@@ -52,13 +52,13 @@ Trong quy trình phát triển phần mềm hiện đại (Agile/Scrum), các k�
                                     v
  +----------------------------------+------------------------------------------------+
  |                           BONUS: AI WEBSITE EXPLORER                              |
- |   Playwright headless fetch DOM -> Gemini AI build Summary & Suggested Req       |
+ |   Playwright headless fetch DOM -> Gemini AI build Summary & Suggested Req        |
  +----------------------------------+------------------------------------------------+
                                     |
                                     v
  +----------------------------------+------------------------------------------------+
  |                       STEP 1: REQUIREMENT ANALYSIS                                |
- |            Input User Story -> Gemini AI Fallback Engine (2.5/2.0/1.5)           |
+ |            Input User Story -> Gemini AI Fallback Engine (3.7/3.6/3.5)            |
  +----------------------------------+------------------------------------------------+
                                     |
                                     v
@@ -104,7 +104,7 @@ Hệ thống tự động khởi tạo **Test Strategy** theo chuẩn quốc t�
 | :--- | :--- |
 | **1. Scope of Testing** | **Included:** Kiểm thử Form "New User Signup" (Name, Email), Validation tin nhắn lỗi UI, chuyển hướng URL `/signup`.<br>**Excluded:** Đăng thanh toán, Xác thực Auth bên thứ 3 (Google/FB), Backup Database. |
 | **2. Test Approach** | **Equivalence Partitioning:** Phân vùng tương đương cho Email hợp lệ/không hợp lệ.<br>**Boundary Value Analysis (BVA):** Đo độ dài chuỗi đầu vào.<br>**Negative Testing:** Thử nạp SQLi/XSS payload & email đã tồn tại. |
-| **3. Test Environment** | **Browser Engine:** Playwright Chromium (Headless / Headed UI mode).<br>**Backend:** Node.js Express server (`server.js`).<br>**AI Model Engine:** Multi-Model Gemini Cascade (`gemini-2.5-flash` -> `gemini-2.0-flash` -> `gemini-1.5-flash`). |
+| **3. Test Environment** | **Browser Engine:** Playwright Chromium (Headless / Headed UI mode).<br>**Backend:** Node.js Express server (`server.js`).<br>**AI Model Engine:** Multi-Model Gemini Cascade (`gemini-3.7-flash` -> `gemini-3.6-flash` -> `gemini-3.5-flash`). |
 | **4. Risk & Mitigation** | **Xung đột email trùng:** Tự sinh chuỗi timestamp ngẫu nhiên.<br>**Timeout Selector UI:** Sử dụng `data-qa` attributes ổn định và cơ chế `waitUntil: 'domcontentloaded'`. |
 
 ---

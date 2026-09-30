@@ -27,13 +27,14 @@ app.use('/evidence', express.static(evidenceDir));
 
 /**
  * Hàm gọi Gemini AI với cơ chế thử lại & tự động chuyển model dự phòng khi gặp sự cố (503 / 429 / Rate Limit)
- * Tối ưu danh sách Fallback Models: gemini-2.5-flash -> gemini-2.0-flash -> gemini-1.5-flash
+ * Tối ưu danh sách Fallback Models: gemini-3.7-flash -> gemini-3.6-flash -> gemini-3.5-flash -> gemini-3.5-flash-lite -> gemini-flash-lite-latest
  */
 async function callGeminiWithFallback(prompt) {
     const candidateModels = [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
+        'gemini-3.7-flash',
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
         'gemini-flash-lite-latest'
     ];
 
