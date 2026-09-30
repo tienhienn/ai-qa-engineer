@@ -7,9 +7,8 @@
 [![Automation](https://img.shields.io/badge/Automation-Playwright%20Chromium-red.svg)](https://playwright.dev/)
 [![AI Engine](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%20API-orange.svg)](https://ai.google.dev/)
 
-> **Sản phẩm dự thi:** *7-Day AI Builder Challenge for Tester / QA*  
 > **Tên ứng dụng:** **Autonomous AI QA Engineer Assistant**  
-> **Tác giả / Đội thi:** QA Automation & AI Innovation Team  
+> **Người thực hiện:** Huỳnh Lê Tiến Hiển 
 
 ---
 
