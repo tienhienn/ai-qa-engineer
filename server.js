@@ -214,9 +214,15 @@ JSON Schema:
         cleanText = cleanText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/g, '').trim();
 
         const parsedData = JSON.parse(cleanText);
+        const rawTestCases = parsedData.testCases || [];
+        const formattedTestCases = rawTestCases.map((tc, index) => ({
+            ...tc,
+            id: `TC_${String(index + 1).padStart(2, '0')}`
+        }));
+
         return res.json({
             testStrategy: parsedData.testStrategy || null,
-            testCases: parsedData.testCases || []
+            testCases: formattedTestCases
         });
     } catch (error) {
         console.error("AI Generation Error:", error);
@@ -271,20 +277,24 @@ app.post('/api/run-tests', async (req, res) => {
 
                 const typeUpper = (tc.type || '').toUpperCase();
                 const expectedLower = (tc.expected || '').toLowerCase();
+                const currentUrl = page.url();
 
-                if (typeUpper === 'NEGATIVE' && expectedLower.includes('already exist')) {
-                    if (!errorText.includes('Email Address already exist!')) {
-                        throw new Error(`Kỳ vọng báo lỗi trùng email "Email Address already exist!", nhưng UI hiển thị: "${errorText || 'Không hiển thị lỗi'}"`);
-                    }
-                } else if (typeUpper === 'POSITIVE') {
-                    const currentUrl = page.url();
+                if (typeUpper === 'POSITIVE') {
+                    // POSITIVE TEST: Expect successful navigation to details page '/signup'
                     if (!currentUrl.includes('/signup')) {
-                        throw new Error(`Kỳ vọng chuyển hướng sang trang điền thông tin chi tiết '/signup', nhưng URL hiện tại: ${currentUrl}. Thông báo UI: "${errorText}"`);
+                        throw new Error(`Expected successful redirection to '/signup', but current URL is: ${currentUrl}. UI Error Message: "${errorText || 'None'}"`);
                     }
-                } else if (typeUpper === 'VALIDATION' || typeUpper === 'BOUNDARY') {
-                    const currentUrl = page.url();
-                    if (currentUrl.includes('/signup') && !errorText) {
-                        throw new Error(`Lỗi Validation: Dữ liệu không hợp lệ / biên đã bị hệ thống chấp nhận thay vì chặn lại!`);
+                } else {
+                    // NEGATIVE / VALIDATION / BOUNDARY TEST: Expect system to BLOCK registration or display error
+                    if (expectedLower.includes('already exist')) {
+                        if (!errorText.includes('Email Address already exist!')) {
+                            throw new Error(`Expected duplicate email error "Email Address already exist!", but UI displayed: "${errorText || 'No error message shown'}"`);
+                        }
+                    } else {
+                        // If invalid or boundary input was accepted and redirected to '/signup' without error, report validation defect!
+                        if (currentUrl.includes('/signup') && !errorText) {
+                            throw new Error(`Validation Defect: Invalid or boundary input (Name: "${tc.name_input || ''}", Email: "${tc.email_input || ''}") was accepted by target system and redirected to '/signup' instead of being blocked!`);
+                        }
                     }
                 }
 

@@ -126,7 +126,12 @@ export default function App() {
 
       if (!response.ok) throw new Error(data.error || "Test Case generation failed");
 
-      const generatedCases = data.testCases || [];
+      const rawCases = data.testCases || [];
+      const generatedCases = rawCases.map((tc, index) => ({
+        ...tc,
+        id: `TC_${String(index + 1).padStart(2, '0')}`
+      }));
+
       setTestStrategy(data.testStrategy || null);
       setTestCases(generatedCases);
       setSelectedIds(new Set(generatedCases.map((tc) => tc.id)));
@@ -323,6 +328,8 @@ export default function App() {
   const isAllFilteredSelected =
     filteredCases.length > 0 &&
     filteredCases.every((tc) => selectedIds.has(tc.id));
+
+  const filteredSelectedCount = filteredCases.filter((tc) => selectedIds.has(tc.id)).length;
 
   return (
     <div className="app-container">
@@ -570,7 +577,9 @@ export default function App() {
                   <div>
                     <h2 className="card-title">Human Verification & Test Suite</h2>
                     <span className="sub-text-count">
-                      Selected {selectedIds.size}/{testCases.length} test cases to execute
+                      {activeTab === "ALL"
+                        ? `Selected ${selectedIds.size}/${testCases.length} test cases to execute`
+                        : `Selected ${filteredSelectedCount}/${filteredCases.length} ${activeTab.toLowerCase()} cases (${selectedIds.size}/${testCases.length} total)`}
                     </span>
                   </div>
                 </div>

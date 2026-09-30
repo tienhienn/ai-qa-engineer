@@ -561,7 +561,7 @@
   box-sizing: border-box;
 }
 
-.result-row > div:first-child {
+.result-row>div:first-child {
   min-width: 0;
   flex: 1;
   overflow-wrap: anywhere;
